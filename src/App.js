@@ -1,10 +1,10 @@
-import React from 'react';
+import React, {Component} from 'react';
 import InputManager from './InputManager'; // InputManager is a class handling all keyboard inputs
 import './App.css';
 import Paddle from './gameObjects/Paddle';
 
 // The main component that contains the canvas, and other buttons if needed
-class App extends React.Component {
+class App extends Component {
 
 	constructor(props) {
 		super(props);
