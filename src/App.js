@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import InputManager from './InputManager'; // InputManager is a class handling all keyboard inputs
 import './App.css';
 import Paddle from './gameObjects/Paddle';
+import Ball from './gameObjects/Ball';
 
 // The main component that contains the canvas, and other buttons if needed
 class App extends Component {
@@ -14,16 +15,26 @@ class App extends Component {
 			context: null, // the canvas context
 		}
 
+		/*
+			(0,0)							(500,0)
+				.							.
+				.
+				.
+				.
+				.
+			(0,300)							(500,300)
+		*/
 		// Create the left and right paddles
-		this.paddle1 = new Paddle({});
-		this.paddle2 = new Paddle({x1:490,x2:490});
+		this.paddle1 = new Paddle({x1:10, y1:0, x2:10, y2:300});
+		this.paddle2 = new Paddle({x1:490,y1:0,x2:490,y2:300});
 		this.draw = this.draw.bind(this);
 
 	}
-
+	
 	componentDidMount() {
 		this.state.input.bindKeys();
-		const context = this.refs.canvas.getContext('2d');
+		//where to include ? -- under here ?
+		const context = this.refs.canvas.getContext('2d'); // This is to get context. It is a part of canvas // like an import ?? no 
 		this.setState({context:context});
 		requestAnimationFrame(this.draw); 
 	}
