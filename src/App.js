@@ -27,7 +27,7 @@ class App extends Component {
 		// Create the left and right paddles
 		this.paddle1 = new Paddle({x1:10, y1:0, x2:10, y2:300});
 		this.paddle2 = new Paddle({x1:490,y1:0,x2:490,y2:300});
-		this.ball = new Ball({x: 150, y: 250});
+		this.ball = new Ball({x: 100 / 2, y: 250});
 		this.draw = this.draw.bind(this);
 		// I am going for dinner !!!!!!!!! BYE
 		//same 
@@ -55,7 +55,7 @@ class App extends Component {
 		// Render the 2 paddles. Their position is updated within their own render methods
 		this.paddle1.render(this.state,{left:this.state.input.pressedKeys.l1, right:this.state.input.pressedKeys.r1});
 		this.paddle2.render(this.state,{left:this.state.input.pressedKeys.l2, right:this.state.input.pressedKeys.r2});
-		this.ball.render(this.state);
+		this.ball.render(this.state, Ball.ballBounce);
 
 		ctx.restore();
 		requestAnimationFrame(this.draw); // Call draw() again on the next frame
