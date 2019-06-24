@@ -28,7 +28,8 @@ class Ball {
     render(state){ 
 		
         var ctx = state.context;
-		// Ok now try addi
+        // Ok now add the ball to app.js? 
+        // haha okay 
         ctx.beginPath();
         ctx.arc(this.x, this.y, 10, 0, Math.PI*2);
         ctx.fillStyle = "#0095DD";

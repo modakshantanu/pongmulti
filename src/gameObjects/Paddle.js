@@ -11,6 +11,7 @@ export default class Paddle {
 		this.x2 = args.x2 || 10;
 		this.y2 = args.y2 || 300;
 
+		
 		// Depth and width are dimensions of the paddle
 		this.depth = args.depth || 10;
 		this.width = args.width || 50;
