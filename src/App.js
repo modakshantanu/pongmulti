@@ -3,6 +3,14 @@ import InputManager from './InputManager'; // InputManager is a class handling a
 import './App.css';
 import Paddle from './gameObjects/Paddle';
 import Ball from './gameObjects/Ball';
+import { Scoreboard } from './components/Scoreboard';
+
+const GameState = {
+	STOPPED:0,
+	RUNNING:1
+}
+
+
 
 // The main component that contains the canvas, and other buttons if needed
 class App extends Component {
@@ -12,30 +20,19 @@ class App extends Component {
 
 		this.state = {
 			input: new InputManager(), // Instantiate new InputManager
-			context: null, // the canvas context
+			context: null, // the canvas context,
+			redScore:0,
+			blueScore:0
 		}
 
-		/*
-			(0,0)							(500,0)
-				.							.
-				.
-				.
-				.
-				.
-			(0,300)							(500,300)
-		*/
-		// Create the left and right paddles
-		this.paddle1 = new Paddle({x1:10, y1:0, x2:10, y2:300});
+	
+		this.paddle1 = new Paddle({x1:10, y1:10, x2:300, y2:10});
 		this.paddle2 = new Paddle({x1:490,y1:0,x2:490,y2:300});
 		this.ball = new Ball({x: 100 / 2, y: 250});
 		this.draw = this.draw.bind(this);
-		// I am going for dinner !!!!!!!!! BYE
-		//same 
-		// okay maybe by tonight can we settle the ball and collision ? 
 		
 	}
-	// Not here
-	// under render ?  /
+
 	componentDidMount() {
 		this.state.input.bindKeys();
 		//where to include ? -- under here ? /
@@ -70,9 +67,18 @@ class App extends Component {
 				<h1>Pong++</h1>
 				
 				<canvas ref = "canvas" width = "500" height = "300"/>
+				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
+				<center>Reset Game</center>
+				<center>
+					<button id = "1v1">1v1</button> 
+					<button onClick = {() => console.log(this.paddle1.getHitbox())}>Debug</button>
+				</center>
+			
 			</div>
 		)
 	}
+
+	
 }
 
 export default App;

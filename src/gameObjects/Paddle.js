@@ -1,15 +1,15 @@
 
-import distance2d from '../utils/2d';
+import {distance2d ,rotateVector} from '../utils/2d';
 
 // Class that handles drawing the paddle
 export default class Paddle {
 	constructor(args) {
 
 		// x1,y1 and x2,y2 represent the starting and ending point where the paddle can slide in between
-		this.x1 = args.x1 || 10;
+		this.x1 = args.x1 || 0;
 		this.y1 = args.y1 || 0;
-		this.x2 = args.x2 || 10;
-		this.y2 = args.y2 || 300;
+		this.x2 = args.x2 || 0;
+		this.y2 = args.y2 || 0;
 
 		
 		// Depth and width are dimensions of the paddle
@@ -20,7 +20,12 @@ export default class Paddle {
 		// Ex. 0 means it is at (x1,y1) , 100 means at (x2,y2), 50 means it is in between
 
 		this.slidinglength = distance2d(this.x1,this.y1,this.x2,this.y2);
-
+		if (this.y1 === this.y2) {
+			this.tiltAngle = 90*Math.PI/180;
+		} else {
+			this.tiltAngle = -Math.atan((this.x2-this.x1)/(this.y2-this.y1));
+		}
+		
 		if (this.slidinglength < this.width) {
 			console.log("Paddle sliding length smaller than paddle width!");
 		}
@@ -59,11 +64,29 @@ export default class Paddle {
 		ctx.fillStyle = "#888888";
 		
 		ctx.translate(this.paddleCenterX, this.paddleCenterY);
+		ctx.rotate(this.tiltAngle );
 		// Draw paddle with fillRect()
 		ctx.fillRect(-this.depth/2,-this.width/2,this.depth,this.width);
 		
 		ctx.restore();
 		
 
+	}
+
+	getHitbox() {
+
+		let sw = this.width/2;
+		let sd = this.depth/2;
+		var points = [
+			{x:sd,y:sw},{x:sd,y:-sw},{x:-sd,y:-sw},{x:-sd,y:sw}
+		];
+
+
+		return points.map((e) => {
+			let {x:u,y:v} = rotateVector(e,-this.tiltAngle);
+		
+			return {x:u + this.paddleCenterX,y: v + this.paddleCenterY}
+		});
+	
 	}
 }
