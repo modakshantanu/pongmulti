@@ -49,44 +49,65 @@ class App extends Component {
 		ctx.translate(0.5,0.5);
 		ctx.fillRect(0,0,500,300); // Erase the previous contents with this
 
-		if (this.Ball.x <= 0 || this.Ball.x > this.Ball.canvas.width) {
-			this.Ball.speed = this.Ball.speed * -1;
-		}
+		var circleBox = require('intersects/circle-box');
+
+		var intersectedPaddle1 =circleBox(this.Ball.x, this.Ball.y, this.Ball.width/2, this,this.paddle1.getHitbox().x,this.paddle1.getHitbox().y,this.paddle1.width , this.paddle1.depth);
+		var intersectedPaddle2 =circleBox(this.Ball.x, this.Ball.y, this.Ball.width/2, this,this.paddle2.getHitbox().x,this.paddle2.getHitbox().y,this.paddle2.width , this.paddle2.depth);
+		// if (this.Ball.x <= 0 || this.Ball.x > this.Ball.canvas.width) {
+		// 	this.Ball.speed = this.Ball.speed * -1;
+		// }
 		
-		if (this.Ball.y <= 0 || this.Ball.y > this.Ball.canvas.height) {
-			this.Ball.gravity = this.Ball.gravity * -1;
-		}
+		// if (this.Ball.y <= 0 || this.Ball.y > this.Ball.canvas.height) {
+		// 	this.Ball.gravity = this.Ball.gravity * -1;
+		// }
 		
 		
-		if (((this.Ball.x + this.Ball.speed <= this.paddle1.x + this.paddle1.width) && (this.Ball.y + this.Ball.gravity > this.paddle1.y) && (this.Ball.y + this.Ball.gravity <= this.paddle1.y + this.paddle1.height)) || ((this.Ball.x + this.Ball.width + this.Ball.speed >= this.paddle2.x) && (this.Ball.y + this.Ball.gravity > this.paddle2.y) && (this.Ball.y + this.Ball.gravity <= this.paddle2.y + this.paddle2.height))){ 
+		// if (((this.Ball.x + this.Ball.speed <= this.paddle1.x + this.paddle1.width) && (this.Ball.y + this.Ball.gravity > this.paddle1.y) && (this.Ball.y + this.Ball.gravity <= this.paddle1.y + this.paddle1.height)) || ((this.Ball.x + this.Ball.width + this.Ball.speed >= this.paddle2.x) && (this.Ball.y + this.Ball.gravity > this.paddle2.y) && (this.Ball.y + this.Ball.gravity <= this.paddle2.y + this.paddle2.height))){ 
 		
-			 //If this.Ball is in the same space as the player 1 paddle (AND) if this.Ball will be in the same X position as the left paddle (player 1) AND the this.Ball’s Y position is between the player 1 paddles top and bottom Y values, then they have collided
+		// 	 //If this.Ball is in the same space as the player 1 paddle (AND) if this.Ball will be in the same X position as the left paddle (player 1) AND the this.Ball’s Y position is between the player 1 paddles top and bottom Y values, then they have collided
 		
-			 //  run the same checks against the player 2 paddle on the right
-			this.Ball.speed = this.Ball.speed * -1;
+		// 	 //  run the same checks against the player 2 paddle on the right
+		// 	this.Ball.speed = this.Ball.speed * -1;
 		
-		  // If this.Ball hits either paddle then change the direction by changing the speed value
-		} if(this.Ball.x + this.Ball.speed < this.paddle1.x) { 
+		//   // If this.Ball hits either paddle then change the direction by changing the speed value
+		// } if(this.Ball.x + this.Ball.speed < this.paddle1.x) { 
 			
-			//If this.Ball doesn’t hit the left paddle, but goes past it then…
-			this.Ball.speed = this.Ball.speed * -1; 
-			//Change the direction of this.Ball to go to the right
-			this.Ball.x = 100 + this.Ball.speed;
+		// 	//If this.Ball doesn’t hit the left paddle, but goes past it then…
+		// 	this.Ball.speed = this.Ball.speed * -1; 
+		// 	//Change the direction of this.Ball to go to the right
+		// 	this.Ball.x = 100 + this.Ball.speed;
 		
-			//Reposition this.Ball and move it along the X axis
-			this.Ball.y += this.Ball.gravity; 
-			//Reposition this.Ball and move it along the Y axis
+		// 	//Reposition this.Ball and move it along the X axis
+		// 	this.Ball.y += this.Ball.gravity; 
+		// 	//Reposition this.Ball and move it along the Y axis
 		
-		} else if (this.Ball.x + this.Ball.speed > this.paddle2.x + this.paddle2.width) { 
-			//this.Ball is similar to the above lines of code -> moves it towards the left
-			this.Ball.speed = this.Ball.speed * -1;
-			this.Ball.x = 500 + this.Ball.speed;
-			this.Ball.y += this.Ball.gravity;
-		} else {
-			// If this.Ball doesn’t hit the paddles, or pass either paddle, then we want to move this.Ball as normal
+		// } else if (this.Ball.x + this.Ball.speed > this.paddle2.x + this.paddle2.width) { 
+		// 	//this.Ball is similar to the above lines of code -> moves it towards the left
+		// 	this.Ball.speed = this.Ball.speed * -1;
+		// 	this.Ball.x = 500 + this.Ball.speed;
+		// 	this.Ball.y += this.Ball.gravity;
+		// } else {
+		// 	// If this.Ball doesn’t hit the paddles, or pass either paddle, then we want to move this.Ball as normal
+		// 	this.Ball.x += this.Ball.speed;
+		// 	this.Ball.y += this.Ball.gravity;
+		// }
+
+
+		if (!intersectedPaddle1 && !intersectedPaddle2){
 			this.Ball.x += this.Ball.speed;
 			this.Ball.y += this.Ball.gravity;
 		}
+
+		else if ( intersectedPaddle1 && !intersectedPaddle2){
+			this.Ball.speed = this.Ball.speed * -1;
+			this.Ball.gravity = this.Ball.gravity * -1;
+		}
+		else{
+			this.Ball.speed = this.Ball.speed * -1;
+			this.Ball.gravity = this.Ball.gravity * -1;
+		}
+
+
 		// Render the 2 paddles. Their position is updated within their own render methods
 		this.paddle1.render(this.state,{left:this.state.input.pressedKeys.l1, right:this.state.input.pressedKeys.r1});
 		this.paddle2.render(this.state,{left:this.state.input.pressedKeys.l2, right:this.state.input.pressedKeys.r2});
