@@ -49,6 +49,8 @@ class App extends Component {
 		ctx.translate(0.5,0.5);
 		ctx.fillRect(0,0,500,300); // Erase the previous contents with this
 
+		// Over Here, check for collision, and change ball speed as required
+		
 		// Render the 2 paddles. Their position is updated within their own render methods
 		this.paddle1.render(this.state,{left:this.state.input.pressedKeys.l1, right:this.state.input.pressedKeys.r1});
 		this.paddle2.render(this.state,{left:this.state.input.pressedKeys.l2, right:this.state.input.pressedKeys.r2});
