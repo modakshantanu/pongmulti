@@ -4,10 +4,19 @@ import './App.css';
 import Paddle from './gameObjects/Paddle';
 import Ball from './gameObjects/Ball';
 import { Scoreboard } from './components/Scoreboard';
+import { Wall } from './gameObjects/Wall';
+import { Goal } from './gameObjects/Goal';
+import intersects from 'intersects';
+
 
 const GameState = {
 	STOPPED:0,
 	RUNNING:1
+}
+
+const Teams = {
+	RED:0,
+	BLUE:1,
 }
 
 
@@ -25,10 +34,22 @@ class App extends Component {
 			blueScore:0
 		}
 
-	
-		this.paddle1 = new Paddle({x1:10, y1:0, x2:10, y2:300});
-		this.paddle2 = new Paddle({x1:490,y1:0,x2:490,y2:300});
-		this.Ball = new Ball({x: 100 / 2, y: 250});
+		this.walls = [
+			new Wall({x1:0,y1:0,x2:500,y2:0}),
+			new Wall({x1:0,y1:299,x2:500,y2:299}),
+		];
+
+		this.goals = [
+			new Goal({x1:0,y1:0,x2:0,y2:300,color:"red",teamId:Teams.RED}),
+			new Goal({x1:499,y1:0,x2:499,y2:300,color:"blue",teamId:Teams.BLUE})
+		];
+
+		this.paddles = [
+			new Paddle({x1:10, y1:0, x2:10, y2:300}),
+			new Paddle({x1:490,y1:0,x2:490,y2:300})
+		]
+
+		this.ball = new Ball({x: 100 / 2, y: 250});
 		this.draw = this.draw.bind(this);
 		
 	}
@@ -49,42 +70,59 @@ class App extends Component {
 		ctx.translate(0.5,0.5);
 		ctx.fillRect(0,0,500,300); // Erase the previous contents with this
 
-	
 		
-		
-		if (((this.Ball.x <= this.paddle1.x + this.paddle1.width) && (this.Ball.y > this.paddle1.y) && (this.Ball.y + this.Ball.gravity <= this.paddle1.y + this.paddle1.height)) || ((this.Ball.x + this.Ball.width + this.Ball.speed >= this.paddle2.x) && (this.Ball.y + this.Ball.gravity > this.paddle2.y) && (this.Ball.y + this.Ball.gravity <= this.paddle2.y + this.paddle2.height))){ 
-		
-			 //If this.Ball is in the same space as the player 1 paddle (AND) if this.Ball will be in the same X position as the left paddle (player 1) AND the this.Ball’s Y position is between the player 1 paddles top and bottom Y values, then they have collided
-		
-			 //  run the same checks against the player 2 paddle on the right
-			this.Ball.speed = this.Ball.speed * -1;
-		
-		  // If this.Ball hits either paddle then change the direction by changing the speed value
-		} if(this.Ball.x + this.Ball.speed < this.paddle1.x) { 
+		this.walls.forEach(e => {
+			e.render(this.state);
+		})
+		this.goals.forEach(e => {
+			e.render(this.state);
+		})
+
+		// Collision between ball and walls
+		this.walls.forEach(e => {
+			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, e.x1, e.y1, e.x2, e.y2)) {
+				this.ball.dy *= -1; // reverse the ball's y-velocity
+				console.log("bounced agains wall");
+			}
 			
-			//If this.Ball doesn’t hit the left paddle, but goes past it then…
-			this.Ball.speed = this.Ball.speed * -1; 
-			//Change the direction of this.Ball to go to the right
-			this.Ball.x = 100 + this.Ball.speed;
-		
-			//Reposition this.Ball and move it along the X axis
-			this.Ball.y += this.Ball.gravity; 
-			//Reposition this.Ball and move it along the Y axis
-		
-		} else if (this.Ball.x + this.Ball.speed > this.paddle2.x + this.paddle2.width) { 
-			//this.Ball is similar to the above lines of code -> moves it towards the left
-			this.Ball.speed = this.Ball.speed * -1;
-			this.Ball.x = 500 + this.Ball.speed;
-			this.Ball.y += this.Ball.gravity;
-		} else {
-			// If this.Ball doesn’t hit the paddles, or pass either paddle, then we want to move this.Ball as normal
-			this.Ball.x += this.Ball.speed;
-			this.Ball.y += this.Ball.gravity;
-		}
+		})
+
+		// Collision between ball and paddles
+		this.paddles.forEach(e => {
+			// The below statement is to convert an array of objects {x,y} to array of numbers  
+			let hitboxArr = e.getHitbox().flatMap(element => {
+				return [element.x,element.y];
+			}); 
+			// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
+			if (intersects.circlePolygon(this.ball.x, this.ball.y,this.ball.radius,hitboxArr)) {
+				this.ball.dx *= -1; // Reverse the ball's x-velocity
+				console.log("bounced agains paddle");
+			}
+			
+		})
+
+		// Collision between ball and goals
+		this.goals.forEach(e => {
+			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, e.x1, e.y1, e.x2, e.y2)) {
+				this.ball.dx *= -1; // reverse the ball's x-velocity
+				console.log("bounced agains goal");
+				// Update the score
+				if (e.teamId === Teams.RED) {
+					this.setState(state => ({blueScore: state.blueScore + 1}));
+				} else {
+					this.setState(state => ({redScore: state.redScore + 1}));
+				}
+			}
+			
+		})
+
+
+
+
 		// Render the 2 paddles. Their position is updated within their own render methods
-		this.paddle1.render(this.state,{left:this.state.input.pressedKeys.l1, right:this.state.input.pressedKeys.r1});
-		this.paddle2.render(this.state,{left:this.state.input.pressedKeys.l2, right:this.state.input.pressedKeys.r2});
-		this.Ball.render(this.state);
+		this.paddles[0].render(this.state,{left:this.state.input.pressedKeys.l1, right:this.state.input.pressedKeys.r1});
+		this.paddles[1].render(this.state,{left:this.state.input.pressedKeys.l2, right:this.state.input.pressedKeys.r2});
+		this.ball.render(this.state);
 
 		ctx.restore();
 		requestAnimationFrame(this.draw); // Call draw() again on the next frame

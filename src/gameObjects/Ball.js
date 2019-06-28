@@ -2,33 +2,24 @@ class Ball {
 	constructor(args) {
         this.x = 150; 
         this.y = 250;
-        this.speed = 1;
-        this.gravity = 1; // changes the direction of movement  1 means up and -1 means down &  left or right 
-        this.width = 15;
-        this.canvas = { 
-            height: 300,
-            width: 500,
-        };
+        this.dx = 2;
+        this.dy = 2; // changes the direction of movement  1 means up and -1 means down &  left or right 
+        this.radius = 10;
+        this.delete = false; // Whether the ball should be deleted in the next frame
+
     }
 
     render(state){ 
 
+        this.x += this.dx;
+        this.y += this.dy;
         
-        if (this.x <= 0 || this.x > this.canvas.width) {
-            this.speed = this.speed * -1;
-        }
-
-        if (this.y <= 0 || this.y > this.canvas.height) {
-            this.gravity = this.gravity * -1;
-        }
-     		
         var ctx = state.context;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 10, 0, Math.PI*2);
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
         ctx.fillStyle = "#0095DD";
         ctx.fill();
         ctx.closePath();
-
     }
 }
 
