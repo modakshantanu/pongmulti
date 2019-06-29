@@ -11,3 +11,14 @@ export function rotateVector(vect, angle) {
 		y: -(Math.sin(angle)*x + Math.cos(angle)*y)
 	}
 }	
+
+// Returins a vector which is the result of *vect* bouncing off a surface with normal *normal*
+// normal must have magnitude 1
+// d' = d - 2(d.n)n
+export function reflection(vect,normal,scalingFactor = 1.0) {
+	let dotProduct = normal.x*vect.x + normal.y*vect.y;
+	let result = vect;
+	result.x -= 2*dotProduct*normal.x;
+	result.y -= 2*dotProduct*normal.y;
+	return result;
+}

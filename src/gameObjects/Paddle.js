@@ -1,5 +1,6 @@
 
-import {distance2d ,rotateVector} from '../utils/2d';
+import {distance2d ,rotateVector, reflection} from '../utils/2d';
+import intersects from 'intersects';
 
 // Class that handles drawing the paddle
 export default class Paddle {
@@ -34,6 +35,45 @@ export default class Paddle {
 		// Ex. if a paddle is 10px wide and the total length is 100px, min and max pos will be 5% and 95% 
 		this.minPosition = 100*(this.width/this.slidinglength)/2;
 		this.maxPosition = 100*(1 - this.width/this.slidinglength/2);
+
+	}
+
+	getReflection(ball) {
+		// First, figure out which edge the ball collided with. 
+		let hitbox = this.getHitbox();
+		let edge;
+		for (let i = 0; i < 4; i++) {
+
+			edge = [hitbox[i].x, hitbox[i].y, hitbox[(i+1)%4].x, hitbox[(i+1)%4].y];
+			console.log(edge);
+			if (intersects.circleLine(ball.x,ball.y,ball.radius, ...edge)) {
+				break;
+			}
+
+		}
+		// Get a vector parallel to the edge
+		let edgeVector = {x:edge[2] - edge[0], y: edge[3] - edge[1]}; 
+		// Rotate it by 90 degrees
+		let normalVector = rotateVector(edgeVector, Math.PI/2); 
+
+
+
+		// Make sure the normal is pointing outwards
+		let edgeMidpointX = (edge[2] + edge[0])/2;
+		if (Math.abs(edgeMidpointX - this.paddleCenterX) > Math.abs(edgeMidpointX + normalVector.x - this.paddleCenterX)) {
+			normalVector.x *= -1;
+			normalVector.y *= -1;
+		}
+
+		// Normalize the normal lol
+		let magnitude = Math.sqrt(normalVector.x**2 + normalVector.y**2);
+		normalVector.x /= magnitude;
+		normalVector.y /= magnitude;
+
+
+		
+		
+		return reflection({x: ball.dx, y: ball.dy}, normalVector, 1.0);
 
 	}
 
@@ -80,6 +120,20 @@ export default class Paddle {
 		var points = [
 			{x:sd,y:sw},{x:sd,y:-sw},{x:-sd,y:-sw},{x:-sd,y:sw}
 		];
+
+		/*
+
+		Order of points 
+
+	    3      2
+		 +----+
+		 |    |
+		 |    |
+		 |    |
+		 |    |
+		 +----+
+        4      1
+		*/
 
 
 		return points.map((e) => {

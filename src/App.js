@@ -19,8 +19,6 @@ const Teams = {
 	BLUE:1,
 }
 
-
-
 // The main component that contains the canvas, and other buttons if needed
 class App extends Component {
 
@@ -71,16 +69,16 @@ class App extends Component {
 		ctx.fillRect(0,0,500,300); // Erase the previous contents with this
 
 		
-		this.walls.forEach(e => {
-			e.render(this.state);
+		this.walls.forEach(wall => {
+			wall.render(this.state);
 		})
-		this.goals.forEach(e => {
-			e.render(this.state);
+		this.goals.forEach(goal => {
+			goal.render(this.state);
 		})
 
 		// Collision between ball and walls
-		this.walls.forEach(e => {
-			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, e.x1, e.y1, e.x2, e.y2)) {
+		this.walls.forEach(wall => {
+			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, wall.x1, wall.y1, wall.x2, wall.y2)) {
 				this.ball.dy *= -1; // reverse the ball's y-velocity
 				console.log("bounced agains wall");
 			}
@@ -88,26 +86,28 @@ class App extends Component {
 		})
 
 		// Collision between ball and paddles
-		this.paddles.forEach(e => {
+		this.paddles.forEach(paddle => {
 			// The below statement is to convert an array of objects {x,y} to array of numbers  
-			let hitboxArr = e.getHitbox().flatMap(element => {
+			let hitboxArr = paddle.getHitbox().flatMap(element => {
 				return [element.x,element.y];
 			}); 
 			// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
 			if (intersects.circlePolygon(this.ball.x, this.ball.y,this.ball.radius,hitboxArr)) {
-				this.ball.dx *= -1; // Reverse the ball's x-velocity
-				console.log("bounced agains paddle");
+				let newVelocity = paddle.getReflection(this.ball);
+				this.ball.dx = newVelocity.x;
+				this.ball.dy = newVelocity.y;
+
 			}
 			
 		})
 
 		// Collision between ball and goals
-		this.goals.forEach(e => {
-			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, e.x1, e.y1, e.x2, e.y2)) {
+		this.goals.forEach(goal => {
+			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, goal.x1, goal.y1, goal.x2, goal.y2)) {
 				this.ball.dx *= -1; // reverse the ball's x-velocity
 				console.log("bounced agains goal");
 				// Update the score
-				if (e.teamId === Teams.RED) {
+				if (goal.teamId === Teams.RED) {
 					this.setState(state => ({blueScore: state.blueScore + 1}));
 				} else {
 					this.setState(state => ({redScore: state.redScore + 1}));
