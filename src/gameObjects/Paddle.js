@@ -12,6 +12,7 @@ export default class Paddle {
 		this.x2 = args.x2 || 0;
 		this.y2 = args.y2 || 0;
 
+	
 		
 		// Depth and width are dimensions of the paddle
 		this.depth = args.depth || 10;
@@ -39,14 +40,15 @@ export default class Paddle {
 	}
 
 	getReflection(ball) {
+		
 		// First, figure out which edge the ball collided with. 
 		let hitbox = this.getHitbox();
 		let edge;
 		for (let i = 0; i < 4; i++) {
 
 			edge = [hitbox[i].x, hitbox[i].y, hitbox[(i+1)%4].x, hitbox[(i+1)%4].y];
-			console.log(edge);
 			if (intersects.circleLine(ball.x,ball.y,ball.radius, ...edge)) {
+				console.log("bounced against paddlewall "+ i)
 				break;
 			}
 
@@ -59,8 +61,13 @@ export default class Paddle {
 
 
 		// Make sure the normal is pointing outwards
-		let edgeMidpointX = (edge[2] + edge[0])/2;
-		if (Math.abs(edgeMidpointX - this.paddleCenterX) > Math.abs(edgeMidpointX + normalVector.x - this.paddleCenterX)) {
+		let midpoint = {x:(edge[2]+edge[0])/2,y:(edge[3]+edge[1])/2};
+		let offset = {...midpoint};
+		offset.x += normalVector.x*0.0001;
+		offset.y += normalVector.y*0.0001;
+
+		if (distance2d(this.paddleCenterX,this.paddleCenterY,midpoint.x,midpoint.y) > distance2d(this.paddleCenterX,this.paddleCenterY,offset.x,offset.y)) {
+		
 			normalVector.x *= -1;
 			normalVector.y *= -1;
 		}
@@ -70,8 +77,6 @@ export default class Paddle {
 		normalVector.x /= magnitude;
 		normalVector.y /= magnitude;
 
-
-		
 		
 		return reflection({x: ball.dx, y: ball.dy}, normalVector, 1.0);
 
@@ -80,6 +85,8 @@ export default class Paddle {
 	render(state,input) {
 		var ctx = state.context;
 		
+
+	
 		// Move the paddle based on keyboard input
 		if (input.right) {
 			this.position++;

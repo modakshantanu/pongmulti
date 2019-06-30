@@ -7,17 +7,21 @@ import { Scoreboard } from './components/Scoreboard';
 import { Wall } from './gameObjects/Wall';
 import { Goal } from './gameObjects/Goal';
 import intersects from 'intersects';
+import { delay } from 'q';
 
 
 const GameState = {
 	STOPPED:0,
-	RUNNING:1
+	RUNNING:1,
+	GOAL_SCORED:2
 }
 
 const Teams = {
 	RED:0,
 	BLUE:1,
 }
+
+var animationFrameId;
 
 // The main component that contains the canvas, and other buttons if needed
 class App extends Component {
@@ -28,8 +32,10 @@ class App extends Component {
 		this.state = {
 			input: new InputManager(), // Instantiate new InputManager
 			context: null, // the canvas context,
+			gameState: GameState.RUNNING,
 			redScore:0,
-			blueScore:0
+			blueScore:0,
+
 		}
 
 		this.walls = [
@@ -57,7 +63,13 @@ class App extends Component {
 		
 		const context = this.refs.canvas.getContext('2d'); // This is to get context. It is a part of canvas // like an import ?? no 
 		this.setState({context:context});		
-		requestAnimationFrame(this.draw); 
+		animationFrameId = requestAnimationFrame(this.draw); 
+
+	}
+
+	resetPositions1v1() {
+		this.ball = new Ball({x: 250, y: 150});
+		this.paddles.forEach(paddle => paddle.position = 50);
 
 	}
 
@@ -76,15 +88,6 @@ class App extends Component {
 			goal.render(this.state);
 		})
 
-		// Collision between ball and walls
-		this.walls.forEach(wall => {
-			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, wall.x1, wall.y1, wall.x2, wall.y2)) {
-				this.ball.dy *= -1; // reverse the ball's y-velocity
-				console.log("bounced agains wall");
-			}
-			
-		})
-
 		// Collision between ball and paddles
 		this.paddles.forEach(paddle => {
 			// The below statement is to convert an array of objects {x,y} to array of numbers  
@@ -101,22 +104,43 @@ class App extends Component {
 			
 		})
 
-		// Collision between ball and goals
-		this.goals.forEach(goal => {
-			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, goal.x1, goal.y1, goal.x2, goal.y2)) {
-				this.ball.dx *= -1; // reverse the ball's x-velocity
-				console.log("bounced agains goal");
-				// Update the score
-				if (goal.teamId === Teams.RED) {
-					this.setState(state => ({blueScore: state.blueScore + 1}));
-				} else {
-					this.setState(state => ({redScore: state.redScore + 1}));
-				}
+		// Collision between ball and walls
+		this.walls.forEach(wall => {
+			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, wall.x1, wall.y1, wall.x2, wall.y2)) {
+				this.ball.dy *= -1; // reverse the ball's y-velocity
+				console.log("bounced agains wall");
 			}
 			
 		})
 
 
+
+		// Collision between ball and goals
+		this.goals.forEach(goal => {
+			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, goal.x1, goal.y1, goal.x2, goal.y2)) {
+				console.log("bounced agains goal");
+				// Update the score
+				let teamText;
+				if (goal.teamId === Teams.RED) {
+					this.setState(state => ({blueScore: state.blueScore + 1}));
+					teamText = "Blue team";
+					ctx.fillStyle = "blue";
+				} else {
+					this.setState(state => ({redScore: state.redScore + 1}));
+					teamText = "Red team";
+					ctx.fillStyle = "red";
+				}
+				ctx.font = "30px Courier New";
+				
+				ctx.fillText(teamText+ " has scored!",80,150);
+
+				cancelAnimationFrame(animationFrameId);
+				this.setState({gameState: GameState.GOAL_SCORED});
+
+				
+			}
+			
+		})
 
 
 		// Render the 2 paddles. Their position is updated within their own render methods
@@ -125,7 +149,21 @@ class App extends Component {
 		this.ball.render(this.state);
 
 		ctx.restore();
-		requestAnimationFrame(this.draw); // Call draw() again on the next frame
+		if (this.state.gameState === GameState.RUNNING) 
+			animationFrameId = requestAnimationFrame(this.draw); // Call draw() again on the next frame
+		else if (this.state.gameState === GameState.GOAL_SCORED) {
+			cancelAnimationFrame(animationFrameId);
+		
+			setTimeout(() => {
+				animationFrameId = requestAnimationFrame(this.draw); 
+				this.resetPositions1v1();
+				this.setState({gameState: GameState.RUNNING});
+			},1000);
+		}
+		
+	
+	
+	
 	}
 
 	componentWillUnmount() {
