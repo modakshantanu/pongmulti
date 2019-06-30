@@ -7,7 +7,7 @@ import { Scoreboard } from './components/Scoreboard';
 import { Wall } from './gameObjects/Wall';
 import { Goal } from './gameObjects/Goal';
 import intersects from 'intersects';
-import { delay } from 'q';
+
 
 
 const GameState = {
@@ -99,6 +99,8 @@ class App extends Component {
 				let newVelocity = paddle.getReflection(this.ball);
 				this.ball.dx = newVelocity.x;
 				this.ball.dy = newVelocity.y;
+				this.ball.x += this.ball.dx;
+				this.ball.y += this.ball.dy;
 
 			}
 			
@@ -179,7 +181,7 @@ class App extends Component {
 				<center>Reset Game</center>
 				<center>
 					<button id = "1v1">1v1</button> 
-					<button onClick = {() => console.log(this.paddle1.getHitbox())}>Debug</button>
+					<button>Debug</button>
 				</center>
 			
 			</div>

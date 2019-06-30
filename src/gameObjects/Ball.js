@@ -1,6 +1,6 @@
 class Ball {
 	constructor(args) {
-        this.x = 150; 
+        this.x = 400; 
         this.y = 250;
         this.dx = 2;
         this.dy = 2; // changes the direction of movement  1 means up and -1 means down &  left or right 
