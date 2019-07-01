@@ -1,5 +1,5 @@
 
-import {distance2d ,rotateVector, reflection} from '../utils/2d';
+import {distance2d ,rotateVector, reflection, angleBetween} from '../utils/2d';
 import intersects from 'intersects';
 
 // Class that handles drawing the paddle
@@ -58,8 +58,6 @@ export default class Paddle {
 		// Rotate it by 90 degrees
 		let normalVector = rotateVector(edgeVector, Math.PI/2); 
 
-
-
 		// Make sure the normal is pointing outwards
 		let midpoint = {x:(edge[2]+edge[0])/2,y:(edge[3]+edge[1])/2};
 		let offset = {...midpoint};
@@ -78,8 +76,19 @@ export default class Paddle {
 		normalVector.y /= magnitude;
 
 		
-		return reflection({x: ball.dx, y: ball.dy}, normalVector, 1.0);
+		let ref = reflection({x: ball.dx, y: ball.dy}, normalVector, 1.0);
+		// Add the vector from paddle to ball, to increase the ball speed on each hit
+		ref.x += (ball.x - this.paddleCenterX)*0.05;
+		ref.y += (ball.y - this.paddleCenterY)*0.05;
 
+		let paddleVelocity = {x: this.paddleCenterX - this.previousCenterX, y: this.paddleCenterY-this.previousCenterY};
+		if (paddleVelocity.x === 0 && paddleVelocity.y === 0) {
+			return ref;
+		}
+
+		// Deflect the ball further based on the movvement of the paddle
+		ref = rotateVector(ref, angleBetween(ref,paddleVelocity)*0.2);
+		return ref;
 	}
 
 	render(state,input) {
@@ -102,8 +111,16 @@ export default class Paddle {
 
 		// Get x and y position of paddle center
 		this.position = Math.round(this.position);
+
+		// Holds the previous coordinates of the paddle in the previous frame
+		// Used to see if the paddle is moving
+		this.previousCenterX = this.paddleCenterX;
+		this.previousCenterY = this.paddleCenterY;
+
 		this.paddleCenterX = (this.x1*(1-this.position/100) + this.x2*this.position/100);
 		this.paddleCenterY = (this.y1*(1-this.position/100) + this.y2*this.position/100);
+
+		
 
 		ctx.save();
 		ctx.translate(0.5,0.5);
@@ -144,7 +161,7 @@ export default class Paddle {
 
 
 		return points.map((e) => {
-			let {x:u,y:v} = rotateVector(e,-this.tiltAngle);
+			let {x:u,y:v} = rotateVector(e,this.tiltAngle);
 		
 			return {x:u + this.paddleCenterX,y: v + this.paddleCenterY}
 		});

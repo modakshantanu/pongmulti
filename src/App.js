@@ -7,6 +7,8 @@ import { Scoreboard } from './components/Scoreboard';
 import { Wall } from './gameObjects/Wall';
 import { Goal } from './gameObjects/Goal';
 import intersects from 'intersects';
+import { rotateVector } from './utils/2d';
+import { randomBetween } from './utils/math';
 
 
 
@@ -35,6 +37,7 @@ class App extends Component {
 			gameState: GameState.RUNNING,
 			redScore:0,
 			blueScore:0,
+			gameMode:1, // Number of players on each side
 
 		}
 
@@ -53,8 +56,9 @@ class App extends Component {
 			new Paddle({x1:490,y1:0,x2:490,y2:300})
 		]
 
-		this.ball = new Ball({x: 100 / 2, y: 250});
+		this.ball = new Ball({x:50, y: 50});
 		this.draw = this.draw.bind(this);
+		this.reset1v1 = this.reset1v1.bind(this);
 		
 	}
 
@@ -63,12 +67,49 @@ class App extends Component {
 		
 		const context = this.refs.canvas.getContext('2d'); // This is to get context. It is a part of canvas // like an import ?? no 
 		this.setState({context:context});		
+		this.resetPositions1v1();
 		animationFrameId = requestAnimationFrame(this.draw); 
 
 	}
 
+	reset1v1() {
+		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
+		this.resetPositions1v1();
+	}
+
+	reset2v2() {
+		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
+		this.resetPositions1v1();
+	}
+
+	reset3v3() {
+		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
+		this.resetPositions1v1();
+	}
+
+	resetPositions() {
+		switch(this.state.gameMode) {
+			case 1: 
+				this.resetPositions1v1(); break;
+			case 2:
+				this.resetPositions2v2(); break;
+			case 3: 
+				this.resetPositions3v3(); break;
+			default: console.log("LOLOLOLOLOL");
+		}
+	}
+
 	resetPositions1v1() {
-		this.ball = new Ball({x: 250, y: 150});
+		// Give the ball an initial velocity of 3 in a random direction
+		let initialBallVelocity = rotateVector({x:3,y:0},randomBetween(-Math.PI/4, Math.PI/4));
+
+		// Make the ball go either right or left with 50:50 chance
+		if (Math.random() > 0.5) {
+			initialBallVelocity.x *= -1;
+			initialBallVelocity.y *= -1;
+		}
+		console.log(initialBallVelocity);
+		this.ball = new Ball({x: 250, y: 150,dx: initialBallVelocity.x, dy: initialBallVelocity.y});
 		this.paddles.forEach(paddle => paddle.position = 50);
 
 	}
@@ -109,8 +150,11 @@ class App extends Component {
 		// Collision between ball and walls
 		this.walls.forEach(wall => {
 			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, wall.x1, wall.y1, wall.x2, wall.y2)) {
-				this.ball.dy *= -1; // reverse the ball's y-velocity
-				console.log("bounced agains wall");
+				let newVelocity = wall.getReflection(this.ball);
+				this.ball.dx = newVelocity.x;
+				this.ball.dy = newVelocity.y;
+				// this.ball.x += this.ball.dx;
+				// this.ball.y += this.ball.dy;
 			}
 			
 		})
@@ -120,7 +164,6 @@ class App extends Component {
 		// Collision between ball and goals
 		this.goals.forEach(goal => {
 			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, goal.x1, goal.y1, goal.x2, goal.y2)) {
-				console.log("bounced agains goal");
 				// Update the score
 				let teamText;
 				if (goal.teamId === Teams.RED) {
@@ -162,9 +205,7 @@ class App extends Component {
 				this.setState({gameState: GameState.RUNNING});
 			},1000);
 		}
-		
-	
-	
+
 	
 	}
 
@@ -180,8 +221,9 @@ class App extends Component {
 				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
 				<center>Reset Game</center>
 				<center>
-					<button id = "1v1">1v1</button> 
-					<button>Debug</button>
+					<button id = "1v1" onClick = {this.reset1v1}>1v1</button> 
+					<button id = "2v2" onClick = {this.reset2v2}>2v2</button>
+					<button id = "3v3" onClick = {this.reset3v3}>3v3</button>
 				</center>
 			
 			</div>

@@ -1,9 +1,9 @@
 class Ball {
 	constructor(args) {
-        this.x = 400; 
-        this.y = 250;
-        this.dx = 2;
-        this.dy = 2; // changes the direction of movement  1 means up and -1 means down &  left or right 
+        this.x = args.x; 
+        this.y = args.y;
+        this.dx = args.dx;
+        this.dy = args.dy; // changes the direction of movement  1 means up and -1 means down &  left or right 
         this.radius = 10;
         this.delete = false; // Whether the ball should be deleted in the next frame
 
