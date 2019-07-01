@@ -47,10 +47,7 @@ export default class Paddle {
 		for (let i = 0; i < 4; i++) {
 
 			edge = [hitbox[i].x, hitbox[i].y, hitbox[(i+1)%4].x, hitbox[(i+1)%4].y];
-			if (intersects.circleLine(ball.x,ball.y,ball.radius, ...edge)) {
-				console.log("bounced against paddlewall "+ i)
-				break;
-			}
+			if (intersects.circleLine(ball.x,ball.y,ball.radius, ...edge)) break;
 
 		}
 		// Get a vector parallel to the edge

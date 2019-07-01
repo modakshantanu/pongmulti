@@ -58,10 +58,10 @@ const KEY = {
 				keys.red3.right = value;
 				break;
 			case KEY.N:
-				keys.blue3.right = value;
+				keys.blue3.left = value;
 				break;
 			case KEY.M:
-				keys.blue3.left = value;
+				keys.blue3.right = value;
 				break;
 			case KEY.L:
 				keys.blue2.left = value;
@@ -71,6 +71,7 @@ const KEY = {
 				break;
 			case KEY.MINUS:
 				keys.blue1.left = value;
+		
 				break;
 			case KEY.EQUAL:
 				keys.blue1.right = value;

@@ -41,26 +41,11 @@ class App extends Component {
 
 		}
 
-		this.walls = [
-			new Wall({x1:0,y1:0,x2:500,y2:0}),
-			new Wall({x1:0,y1:299,x2:500,y2:299}),
-		];
-
-		this.goals = [
-			new Goal({x1:0,y1:0,x2:0,y2:300,color:"red",teamId:Teams.RED}),
-			new Goal({x1:499,y1:0,x2:499,y2:300,color:"blue",teamId:Teams.BLUE})
-		];
-
-		this.paddles = [
-			new Paddle({x1:10, y1:0, x2:10, y2:300}),
-			new Paddle({x1:490,y1:300,x2:490,y2:0})
-		]
-
-		this.ball = new Ball({x:50, y: 50});
 		this.draw = this.draw.bind(this);
 		this.reset1v1 = this.reset1v1.bind(this);
 		this.reset2v2 = this.reset2v2.bind(this);
 		this.reset3v3 = this.reset3v3.bind(this);
+		this.resetPositions = this.resetPositions.bind(this);
 		this.renderPaddles = this.renderPaddles.bind(this);
 		
 	}
@@ -70,52 +55,95 @@ class App extends Component {
 		
 		const context = this.refs.canvas.getContext('2d'); // This is to get context
 		this.setState({context:context});		
-		this.resetPositions1v1();
+		this.reset1v1();
 		animationFrameId = requestAnimationFrame(this.draw); 
 
 	}
 
 	reset1v1() {
-		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
-		this.resetPositions1v1();
+		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING,gameMode:1});
+		this.walls = [
+			new Wall({x1:0,y1:100,x2:500,y2:100}),
+			new Wall({x1:0,y1:399,x2:500,y2:399}),
+		];
+		this.goals = [
+			new Goal({x1:0,y1:100,x2:0,y2:400,color:"red",teamId:Teams.RED}),
+			new Goal({x1:499,y1:100,x2:499,y2:400,color:"blue",teamId:Teams.BLUE})
+		];
+
+		this.paddles = [
+			new Paddle({x1:10, y1:100, x2:10, y2:400}),
+			new Paddle({x1:490,y1:400,x2:490,y2:100})
+		]
+		this.ball = new Ball({x:250, y: 250});
+		this.resetPositions();
 	}
 
 	reset2v2() {
-		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
-		this.resetPositions1v1();
+		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING,gameMode:2});
+		this.walls = [];
+		this.goals = [
+			new Goal({x1:0,y1:250,x2:250,y2:0,color:"red",teamId:Teams.RED}),
+			new Goal({x1:250,y1:0,x2:500,y2:250,color:"red",teamId:Teams.RED}),
+			new Goal({x1:0,y1:250,x2:250,y2:500,color:"blue",teamId:Teams.BLUE}),
+			new Goal({x1:250,y1:500,x2:500,y2:250,color:"blue",teamId:Teams.BLUE}),
+		];
+		this.paddles = [
+			new Paddle({x1:10,y1:250,x2:250,y2:10}),
+			new Paddle({x1:250,y1:10,x2:490,y2:250}),
+			new Paddle({x1:250,y1:490,x2:490,y2:250}),
+			new Paddle({x1:10,y1:250,x2:250,y2:490}),
+		]
+		this.ball = new Ball({x:250, y: 250});
+		this.resetPositions();
 	}
 
 	reset3v3() {
-		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
-		this.resetPositions1v1();
+		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING,gameMode:3});
+		this.walls = [];
+		// Generate the hexagonal coordinates programatically since its easier than hardcoding
+		this.goals = [];
+		for (let i = 0; i < 6; i++) {
+			let g1 = rotateVector({x:250,y:0},i*Math.PI/3);
+			let g2 = rotateVector({x:250,y:0},(i+1)*Math.PI/3);
+			let color = i < 3? "blue":"red";
+			let teamId = color === "red"? Teams.RED: Teams.BLUE;
+			this.goals.push(new Goal({x1:g1.x + 250, y1:g1.y + 250, x2:g2.x + 250, y2:g2.y + 250, color:color, teamId:teamId}));
+		}
+		this.paddles = [];
+		for (let i = 0; i < 3; i++) {
+			let v1 = rotateVector({x:-240,y:0},i*Math.PI/3);
+			let v2 = rotateVector({x:-240,y:0},(i+1)*Math.PI/3);
+			
+			
+			this.paddles.push(new Paddle({x1: v1.x + 250,y1:v1.y + 250, x2:v2.x + 250, y2:v2.y + 250}));
+		}
+		for (let i = 0; i < 3; i++) {
+			let {x1,y1,x2,y2} = this.paddles[2-i];
+			this.paddles.push(new Paddle({x1:x1, y1: 500-y1, x2:x2, y2:500-y2}))
+		}
+	
+
+		
+		this.ball = new Ball({x:250, y: 250});
+		this.resetPositions();
 	}
 
 	resetPositions() {
-		switch(this.state.gameMode) {
-			case 1: 
-				this.resetPositions1v1(); break;
-			case 2:
-				this.resetPositions2v2(); break;
-			case 3: 
-				this.resetPositions3v3(); break;
-			default: console.log("LOLOLOLOLOL");
-		}
-	}
 
-	resetPositions1v1() {
-		// Give the ball an initial velocity of 3 in a random direction
-		let initialBallVelocity = rotateVector({x:3,y:0},randomBetween(-Math.PI/4, Math.PI/4));
+		let randomAngle = this.state.gameMode === 1? randomBetween(-Math.PI/4, Math.PI/4): randomBetween(0,Math.PI/2);
+		let initialBallVelocity  =rotateVector({x:3,y:0},randomAngle);
 
 		// Make the ball go either right or left with 50:50 chance
-		if (Math.random() > 0.5) {
+		if (this.state.gameMode === 1 && Math.random() > 0.5) {
 			initialBallVelocity.x *= -1;
 			initialBallVelocity.y *= -1;
 		}
-		console.log(initialBallVelocity);
-		this.ball = new Ball({x: 250, y: 150,dx: initialBallVelocity.x, dy: initialBallVelocity.y});
+		this.ball = new Ball({x: 250, y: 250,dx: initialBallVelocity.x, dy: initialBallVelocity.y});
 		this.paddles.forEach(paddle => paddle.position = 50);
-
 	}
+
+
 
 	renderPaddles() {
 
@@ -211,7 +239,7 @@ class App extends Component {
 				}
 				ctx.font = "30px Courier New";
 				
-				ctx.fillText(teamText+ " has scored!",80,150);
+				ctx.fillText(teamText+ " has scored!",80,250);
 
 				cancelAnimationFrame(animationFrameId);
 				this.setState({gameState: GameState.GOAL_SCORED});
@@ -220,7 +248,6 @@ class App extends Component {
 			}
 			
 		})
-
 
 		// Render the 2 paddles. Their position is updated within their own render methods
 		this.renderPaddles();
@@ -234,9 +261,9 @@ class App extends Component {
 		
 			setTimeout(() => {
 				animationFrameId = requestAnimationFrame(this.draw); 
-				this.resetPositions1v1();
+				this.resetPositions();
 				this.setState({gameState: GameState.RUNNING});
-			},1000);
+			},1500);
 		}
 
 	
@@ -250,7 +277,7 @@ class App extends Component {
 			<div>
 				<h1>Pong++</h1>
 				
-				<canvas ref = "canvas" width = "500" height = "500"/>
+				<canvas ref = "canvas" width = "501" height = "501"/>
 				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
 				<center>Reset Game</center>
 				<center>
