@@ -53,19 +53,22 @@ class App extends Component {
 
 		this.paddles = [
 			new Paddle({x1:10, y1:0, x2:10, y2:300}),
-			new Paddle({x1:490,y1:0,x2:490,y2:300})
+			new Paddle({x1:490,y1:300,x2:490,y2:0})
 		]
 
 		this.ball = new Ball({x:50, y: 50});
 		this.draw = this.draw.bind(this);
 		this.reset1v1 = this.reset1v1.bind(this);
+		this.reset2v2 = this.reset2v2.bind(this);
+		this.reset3v3 = this.reset3v3.bind(this);
+		this.renderPaddles = this.renderPaddles.bind(this);
 		
 	}
 
 	componentDidMount() {
 		this.state.input.bindKeys();
 		
-		const context = this.refs.canvas.getContext('2d'); // This is to get context. It is a part of canvas // like an import ?? no 
+		const context = this.refs.canvas.getContext('2d'); // This is to get context
 		this.setState({context:context});		
 		this.resetPositions1v1();
 		animationFrameId = requestAnimationFrame(this.draw); 
@@ -114,12 +117,44 @@ class App extends Component {
 
 	}
 
+	renderPaddles() {
+
+		let keys = this.state.input.pressedKeys;
+		
+		switch(this.state.gameMode) {
+			case 1:
+				this.paddles[0].render(this.state, keys.red1); 
+				this.paddles[1].render(this.state, keys.blue1);
+				break;
+
+			case 2:
+				this.paddles[0].render(this.state, keys.red1); 
+				this.paddles[1].render(this.state, keys.red2);
+				this.paddles[2].render(this.state, keys.blue1); 
+				this.paddles[3].render(this.state, keys.blue2);
+				break;
+			
+			case 3: 
+				this.paddles[0].render(this.state, keys.red1); 
+				this.paddles[1].render(this.state, keys.red2);
+				this.paddles[2].render(this.state, keys.red3); 
+				this.paddles[3].render(this.state, keys.blue1);
+				this.paddles[4].render(this.state, keys.blue2); 
+				this.paddles[5].render(this.state, keys.blue3);
+				break;
+			
+
+			default :
+				console.log("WHY");
+		}
+	}
+
 	draw() {
 		const ctx = this.state.context;
 		ctx.save();
 		ctx.fillStyle = "#FFF";
 		ctx.translate(0.5,0.5);
-		ctx.fillRect(0,0,500,300); // Erase the previous contents with this
+		ctx.fillRect(0,0,500,500); // Erase the previous contents with this
 
 		
 		this.walls.forEach(wall => {
@@ -142,7 +177,6 @@ class App extends Component {
 				this.ball.dy = newVelocity.y;
 				this.ball.x += this.ball.dx;
 				this.ball.y += this.ball.dy;
-
 			}
 			
 		})
@@ -153,8 +187,8 @@ class App extends Component {
 				let newVelocity = wall.getReflection(this.ball);
 				this.ball.dx = newVelocity.x;
 				this.ball.dy = newVelocity.y;
-				// this.ball.x += this.ball.dx;
-				// this.ball.y += this.ball.dy;
+				this.ball.x += this.ball.dx;
+				this.ball.y += this.ball.dy;
 			}
 			
 		})
@@ -189,8 +223,7 @@ class App extends Component {
 
 
 		// Render the 2 paddles. Their position is updated within their own render methods
-		this.paddles[0].render(this.state,{left:this.state.input.pressedKeys.l1, right:this.state.input.pressedKeys.r1});
-		this.paddles[1].render(this.state,{left:this.state.input.pressedKeys.l2, right:this.state.input.pressedKeys.r2});
+		this.renderPaddles();
 		this.ball.render(this.state);
 
 		ctx.restore();
@@ -217,7 +250,7 @@ class App extends Component {
 			<div>
 				<h1>Pong++</h1>
 				
-				<canvas ref = "canvas" width = "500" height = "300"/>
+				<canvas ref = "canvas" width = "500" height = "500"/>
 				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
 				<center>Reset Game</center>
 				<center>
