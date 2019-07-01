@@ -131,7 +131,7 @@ class App extends Component {
 
 	resetPositions() {
 
-		let randomAngle = this.state.gameMode === 1? randomBetween(-Math.PI/4, Math.PI/4): randomBetween(0,Math.PI/2);
+		let randomAngle = this.state.gameMode === 1? randomBetween(-Math.PI/4, Math.PI/4): randomBetween(0,2*Math.PI);
 		let initialBallVelocity  =rotateVector({x:3,y:0},randomAngle);
 
 		// Make the ball go either right or left with 50:50 chance
@@ -285,6 +285,7 @@ class App extends Component {
 					<button id = "2v2" onClick = {this.reset2v2}>2v2</button>
 					<button id = "3v3" onClick = {this.reset3v3}>3v3</button>
 				</center>
+				
 			
 			</div>
 		)
