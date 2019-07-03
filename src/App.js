@@ -42,7 +42,7 @@ class App extends Component {
 			blueScore:0,
 			gameMode:1, // Number of players on each side,
 			settings: {
-				AI:[false,false,false,false,false,false]
+				AI:[true,true,true,true,true,true]
 			}
 
 		}
@@ -74,23 +74,18 @@ class App extends Component {
 		// A new array of all the goals, as well as walls
 		// Both goals and walls are treated as walls by bots
 		let goalWalls = this.goals.map(goal => new Wall({x1:goal.x1,y1:goal.y1,x2:goal.x2,y2:goal.y2})).concat(this.walls); 
-		console.log(goalWalls);
+
 		for (let i = 0; i < 6; i++) {
 			if (this.state.settings.AI[i]) {
 				let modifiedWalls = [...goalWalls]; // Create a new array with all walls except that player's goal
 				modifiedWalls.splice(i,1);
-				console.log("Player "+ i);
-				console.log(modifiedWalls);
 				this.bots.push(new Bot({walls:modifiedWalls}));
 				
 			} else {
 				this.bots.push(null); // Dummy to make the array index match other indices (0-5)
 			}
 		}
-
-		for (let i = 0; i < 6; i++) {
-			if (this.bots[i]) console.log(this.bots[i].walls);
-		}
+	
 	}
 
 	reset1v1() {
@@ -130,8 +125,8 @@ class App extends Component {
 			new Goal({x1:0,y1:250,x2:250,y2:0,color:"red",teamId:Teams.RED}),
 			new Goal({x1:250,y1:0,x2:500,y2:250,color:"red",teamId:Teams.RED}),
 			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), 
-			new Goal({x1:0,y1:250,x2:250,y2:500,color:"blue",teamId:Teams.BLUE}),
 			new Goal({x1:250,y1:500,x2:500,y2:250,color:"blue",teamId:Teams.BLUE}),
+			new Goal({x1:0,y1:250,x2:250,y2:500,color:"blue",teamId:Teams.BLUE}),
 			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), 
 		];
 		this.paddles = [
@@ -143,7 +138,7 @@ class App extends Component {
 			new Paddle({x1:-100,y1:-100,x2:-100,y2:-100,hidden:true}),
 		]
 		this.ball = new Ball({x:250, y: 250});
-		
+		this.initBots();
 		this.resetPositions();
 	}
 
@@ -153,9 +148,9 @@ class App extends Component {
 		// Generate the hexagonal coordinates programatically since its easier than hardcoding
 		this.goals = [];
 		for (let i = 0; i < 6; i++) {
-			let g1 = rotateVector({x:250,y:0},i*Math.PI/3);
-			let g2 = rotateVector({x:250,y:0},(i+1)*Math.PI/3);
-			let color = i < 3? "blue":"red";
+			let g1 = rotateVector({x:-250,y:0},i*Math.PI/3);
+			let g2 = rotateVector({x:-250,y:0},(i+1)*Math.PI/3);
+			let color = i < 3? "red":"blue";
 			let teamId = color === "red"? Teams.RED: Teams.BLUE;
 			this.goals.push(new Goal({x1:g1.x + 250, y1:g1.y + 250, x2:g2.x + 250, y2:g2.y + 250, color:color, teamId:teamId}));
 		}
@@ -172,9 +167,11 @@ class App extends Component {
 			this.paddles.push(new Paddle({x1:x1, y1: 500-y1, x2:x2, y2:500-y2}))
 		}
 	
+	
 
 		
 		this.ball = new Ball({x:250, y: 250});
+		this.initBots();
 		this.resetPositions();
 	}
 
@@ -273,6 +270,8 @@ class App extends Component {
 					teamText = "Red team";
 					ctx.fillStyle = "red";
 				}
+
+				console.log(this.bots.map(b =>b.waitTimer));
 				ctx.font = "30px Courier New";
 				
 				ctx.fillText(teamText+ " has scored!",80,250);
@@ -285,8 +284,13 @@ class App extends Component {
 			
 		})
 
-		// Render the 2 paddles. Their position is updated within their own render methods
-		this.bots.forEach((bot,index) => {if (bot) bot.calculateOutput(this.ball, this.paddles[index])});
+		
+		this.bots.forEach((bot,index) => {
+			if (bot) {
+				
+				bot.calculateOutput(this.ball, this.paddles[index]);
+			}
+		});
 
 		this.renderPaddles();
 		this.ball.render(this.state);

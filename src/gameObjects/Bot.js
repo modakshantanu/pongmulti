@@ -7,7 +7,7 @@ export class Bot {
 		this.output = {left:0,right:0};
 		this.waitTimer = 0;
 		this.lookAhead = 10; // Bot will only calculate the ball's trajectory upto 3 bounces into the future	
-
+		this.debug = args.debug;
 	}
 
 	reset() {
@@ -20,6 +20,7 @@ export class Bot {
 		// Calculation of the ball's trajectory is only done
 		// once after every impact off another paddle
 		//console.log(this.waitTimer);
+		
 		if (this.waitTimer > 0) {
 			this.waitTimer--;
 			return;
@@ -49,8 +50,8 @@ export class Bot {
 
 			for (let i = 0; i < this.walls.length; i++) {
 				let wall = this.walls[i];
-				let w1 = {x:wall.x1, y:wall.y1};
-				let w2 = {x:wall.x2, y:wall.y2};
+				let w1 = {x:Math.round(wall.x1), y:Math.round(wall.y1)};
+				let w2 = {x:Math.round(wall.x2), y:Math.round(wall.y2)};
 				let intersectionPoint = lineIntersection.findSegmentIntersection([w1,w2,b1,b2]);
 
 				if (intersectionPoint !== false) { // That means the ball will hit wall
@@ -75,8 +76,8 @@ export class Bot {
 			if (bouncedFlag) continue;
 			
 			// Now check intersection with the paddle
-			let p1 = {x: paddle.x1, y:paddle.y1};
-			let p2 = {x: paddle.x2, y:paddle.y2};
+			let p1 = {x: Math.round(paddle.x1), y: Math.round(paddle.y1)};
+			let p2 = {x: Math.round(paddle.x2), y: Math.round(paddle.y2)};
 
 			
 			let intersectionPoint = lineIntersection.findSegmentIntersection([p1,p2,b1,b2]);
