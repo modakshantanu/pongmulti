@@ -5,8 +5,8 @@ export class Goal {
 		this.x2 = args.x2;
 		this.y2 = args.y2;
 
-		this.color = args.color;
-		this.teamId = args.teamId;	
+		this.color = args.color || "red";
+		this.teamId = args.teamId || 0;	
 	}
 
 	render(state) {

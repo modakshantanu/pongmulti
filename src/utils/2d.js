@@ -24,8 +24,8 @@ export function reflection(vect,normal,scalingFactor = 1.0) {
 }
 
 export function angleBetween(vect1, vect2) {
-	let mag1 = Math.sqrt(vect1.x ** 2 + vect1.y ** 2);
-	let mag2 = Math.sqrt(vect2.x ** 2 + vect2.y ** 2);
-	let dotProduct = vect1.x*vect2.x + vect1.y*vect2.y;
-	return Math.acos(dotProduct/(mag1*mag2));
+	let {x:x1,y:y1} = vect1;
+	let {x:x2,y:y2} = vect2;
+	return Math.atan(x1*y2-y1*x2,x1*x2+y1*y2);
+
 }

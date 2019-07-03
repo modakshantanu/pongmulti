@@ -11,7 +11,7 @@ const controls = {
 	float: "left"
 }
 
-const userinfo = (<div class = {controls}><h2 align = "left">CONTROLS INFO</h2>
+const userinfo = (<div className = {controls}><h2 align = "left">CONTROLS INFO</h2>
 		<div align = "left">
 			<p> RED 1  : 1  --> LEFT / UP  &&  2   --> RIGHT / DOWN  </p> 
 			<p> RED 2  : S  --> LEFT  &&  D --> RIGHT </p>

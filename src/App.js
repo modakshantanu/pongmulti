@@ -9,6 +9,9 @@ import { Goal } from './gameObjects/Goal';
 import intersects from 'intersects';
 import { rotateVector } from './utils/2d';
 import { randomBetween } from './utils/math';
+import { Bot } from './gameObjects/Bot';
+import Settings from './components/Settings';
+
 
 
 
@@ -37,7 +40,10 @@ class App extends Component {
 			gameState: GameState.RUNNING,
 			redScore:0,
 			blueScore:0,
-			gameMode:1, // Number of players on each side
+			gameMode:1, // Number of players on each side,
+			settings: {
+				AI:[false,false,false,false,false,false]
+			}
 
 		}
 
@@ -47,6 +53,8 @@ class App extends Component {
 		this.reset3v3 = this.reset3v3.bind(this);
 		this.resetPositions = this.resetPositions.bind(this);
 		this.renderPaddles = this.renderPaddles.bind(this);
+		this.changeSettings = this.changeSettings.bind(this);
+		this.initBots = this.initBots.bind(this);
 		
 	}
 
@@ -60,6 +68,31 @@ class App extends Component {
 
 	}
 
+
+	initBots() {
+		this.bots = [];
+		// A new array of all the goals, as well as walls
+		// Both goals and walls are treated as walls by bots
+		let goalWalls = this.goals.map(goal => new Wall({x1:goal.x1,y1:goal.y1,x2:goal.x2,y2:goal.y2})).concat(this.walls); 
+		console.log(goalWalls);
+		for (let i = 0; i < 6; i++) {
+			if (this.state.settings.AI[i]) {
+				let modifiedWalls = [...goalWalls]; // Create a new array with all walls except that player's goal
+				modifiedWalls.splice(i,1);
+				console.log("Player "+ i);
+				console.log(modifiedWalls);
+				this.bots.push(new Bot({walls:modifiedWalls}));
+				
+			} else {
+				this.bots.push(null); // Dummy to make the array index match other indices (0-5)
+			}
+		}
+
+		for (let i = 0; i < 6; i++) {
+			if (this.bots[i]) console.log(this.bots[i].walls);
+		}
+	}
+
 	reset1v1() {
 		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING,gameMode:1});
 		this.walls = [
@@ -68,14 +101,25 @@ class App extends Component {
 		];
 		this.goals = [
 			new Goal({x1:0,y1:100,x2:0,y2:400,color:"red",teamId:Teams.RED}),
-			new Goal({x1:499,y1:100,x2:499,y2:400,color:"blue",teamId:Teams.BLUE})
+			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), //
+			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), //
+			new Goal({x1:499,y1:100,x2:499,y2:400,color:"blue",teamId:Teams.BLUE}),
+			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), // These 4 are dummy goals to make the mapping consistent
+			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), //
 		];
 
 		this.paddles = [
 			new Paddle({x1:10, y1:100, x2:10, y2:400}),
-			new Paddle({x1:490,y1:400,x2:490,y2:100})
+			new Paddle({x1:-100,y1:-100,x2:-100,y2:-100,hidden:true}), // 
+			new Paddle({x1:-100,y1:-100,x2:-100,y2:-100,hidden:true}), // These 4 paddles are dummy paddles, so the mapping from player -> paddle index
+			new Paddle({x1:490,y1:400,x2:490,y2:100}),
+			new Paddle({x1:-100,y1:-100,x2:-100,y2:-100,hidden:true}), // is consistent
+			new Paddle({x1:-100,y1:-100,x2:-100,y2:-100,hidden:true}), //
+
 		]
 		this.ball = new Ball({x:250, y: 250});
+		this.initBots();
+		
 		this.resetPositions();
 	}
 
@@ -85,16 +129,21 @@ class App extends Component {
 		this.goals = [
 			new Goal({x1:0,y1:250,x2:250,y2:0,color:"red",teamId:Teams.RED}),
 			new Goal({x1:250,y1:0,x2:500,y2:250,color:"red",teamId:Teams.RED}),
+			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), 
 			new Goal({x1:0,y1:250,x2:250,y2:500,color:"blue",teamId:Teams.BLUE}),
 			new Goal({x1:250,y1:500,x2:500,y2:250,color:"blue",teamId:Teams.BLUE}),
+			new Goal({x1:-100,y1:-100,x2:-100,y2:-100}), 
 		];
 		this.paddles = [
 			new Paddle({x1:10,y1:250,x2:250,y2:10}),
 			new Paddle({x1:250,y1:10,x2:490,y2:250}),
+			new Paddle({x1:-100,y1:-100,x2:-100,y2:-100,hidden:true}),
 			new Paddle({x1:250,y1:490,x2:490,y2:250}),
 			new Paddle({x1:10,y1:250,x2:250,y2:490}),
+			new Paddle({x1:-100,y1:-100,x2:-100,y2:-100,hidden:true}),
 		]
 		this.ball = new Ball({x:250, y: 250});
+		
 		this.resetPositions();
 	}
 
@@ -131,16 +180,20 @@ class App extends Component {
 
 	resetPositions() {
 
-		let randomAngle = this.state.gameMode === 1? randomBetween(-Math.PI/4, Math.PI/4): randomBetween(0,2*Math.PI);
-		let initialBallVelocity  =rotateVector({x:3,y:0},randomAngle);
+		let randomAngle = this.state.gameMode === 1? randomBetween(-Math.PI/4,Math.PI/4): randomBetween(0,2*Math.PI);
+		let initialBallVelocity = rotateVector({x:3,y:0},randomAngle);
 
 		// Make the ball go either right or left with 50:50 chance
-		if (this.state.gameMode === 1 && Math.random() > 0.5) {
+		if (this.state.gameMode === 1 &&  Math.random() < 0.5) { 
 			initialBallVelocity.x *= -1;
 			initialBallVelocity.y *= -1;
 		}
 		this.ball = new Ball({x: 250, y: 250,dx: initialBallVelocity.x, dy: initialBallVelocity.y});
 		this.paddles.forEach(paddle => paddle.position = 50);
+		this.bots.forEach(b => {
+			if (b) // To bypass the null elements in bots array
+				b.reset();
+		})
 	}
 
 
@@ -148,33 +201,16 @@ class App extends Component {
 	renderPaddles() {
 
 		let keys = this.state.input.pressedKeys;
+		let b = this.bots;
+
+		this.paddles[0].render(this.state, b[0]? b[0].output:keys.red1); 
+		this.paddles[1].render(this.state, b[1]? b[1].output:keys.red2);
+		this.paddles[2].render(this.state, b[2]? b[2].output:keys.red3); 
+		this.paddles[3].render(this.state, b[3]? b[3].output:keys.blue1);
+		this.paddles[4].render(this.state, b[4]? b[4].output:keys.blue2); 
+		this.paddles[5].render(this.state, b[5]? b[5].output:keys.blue3);
 		
-		switch(this.state.gameMode) {
-			case 1:
-				this.paddles[0].render(this.state, keys.red1); 
-				this.paddles[1].render(this.state, keys.blue1);
-				break;
-
-			case 2:
-				this.paddles[0].render(this.state, keys.red1); 
-				this.paddles[1].render(this.state, keys.red2);
-				this.paddles[2].render(this.state, keys.blue1); 
-				this.paddles[3].render(this.state, keys.blue2);
-				break;
-			
-			case 3: 
-				this.paddles[0].render(this.state, keys.red1); 
-				this.paddles[1].render(this.state, keys.red2);
-				this.paddles[2].render(this.state, keys.red3); 
-				this.paddles[3].render(this.state, keys.blue1);
-				this.paddles[4].render(this.state, keys.blue2); 
-				this.paddles[5].render(this.state, keys.blue3);
-				break;
-			
-
-			default :
-				console.log("WHY");
-		}
+		
 	}
 
 	draw() {
@@ -250,6 +286,8 @@ class App extends Component {
 		})
 
 		// Render the 2 paddles. Their position is updated within their own render methods
+		this.bots.forEach((bot,index) => {if (bot) bot.calculateOutput(this.ball, this.paddles[index])});
+
 		this.renderPaddles();
 		this.ball.render(this.state);
 
@@ -272,6 +310,10 @@ class App extends Component {
 	componentWillUnmount() {
 		this.state.input.unbindKeys();
 	}
+
+	changeSettings(newSettings) {
+		this.setState({settings:newSettings});
+	}
 	render() {
 		return (
 			<div>
@@ -285,7 +327,8 @@ class App extends Component {
 					<button id = "2v2" onClick = {this.reset2v2}>2v2</button>
 					<button id = "3v3" onClick = {this.reset3v3}>3v3</button>
 				</center>
-				
+				<Settings settings = {this.state.settings} changeHandler = {this.changeSettings}/>
+
 			
 			</div>
 		)

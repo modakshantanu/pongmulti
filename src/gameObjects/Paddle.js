@@ -11,7 +11,7 @@ export default class Paddle {
 		this.y1 = args.y1 || 0;
 		this.x2 = args.x2 || 0;
 		this.y2 = args.y2 || 0;
-
+		this.hidden = args.hidden;
 	
 		
 		// Depth and width are dimensions of the paddle
@@ -20,16 +20,14 @@ export default class Paddle {
 
 		this.position = 50; // Percentage value showing how far the paddle is from its first endpoint to the other
 		// Ex. 0 means it is at (x1,y1) , 100 means at (x2,y2), 50 means it is in between
+		this.paddleCenterX = (this.x1+this.x2)/2;
+		this.paddleCenterY = (this.y1+this.y2)/2;
 
 		this.slidinglength = distance2d(this.x1,this.y1,this.x2,this.y2);
 		if (this.y1 === this.y2) {
 			this.tiltAngle = 90*Math.PI/180;
 		} else {
 			this.tiltAngle = -Math.atan((this.x2-this.x1)/(this.y2-this.y1));
-		}
-		
-		if (this.slidinglength < this.width) {
-			console.log("Paddle sliding length smaller than paddle width!");
 		}
 
 		// The min and max value of position so that the ends of the paddle dont cross x1,y1 and x2,y2
@@ -42,6 +40,7 @@ export default class Paddle {
 	getReflection(ball) {
 		
 		// First, figure out which edge the ball collided with. 
+
 		let hitbox = this.getHitbox();
 		let edge;
 		for (let i = 0; i < 4; i++) {
@@ -82,6 +81,7 @@ export default class Paddle {
 		if (paddleVelocity.x === 0 && paddleVelocity.y === 0) {
 			return ref;
 		}
+	
 
 		// Deflect the ball further based on the movvement of the paddle
 		ref = rotateVector(ref, angleBetween(ref,paddleVelocity)*0.2);
@@ -89,6 +89,7 @@ export default class Paddle {
 	}
 
 	render(state,input) {
+		if (this.hidden) return;
 		var ctx = state.context;
 		
 
