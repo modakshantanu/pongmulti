@@ -42,7 +42,7 @@ class App extends Component {
 			blueScore:0,
 			gameMode:1, // Number of players on each side,
 			settings: {
-				AI:[true,true,true,true,true,true]
+				AI:[false,false,false,false,false,false]
 			}
 
 		}
@@ -271,7 +271,7 @@ class App extends Component {
 					ctx.fillStyle = "red";
 				}
 
-				console.log(this.bots.map(b =>b.waitTimer));
+
 				ctx.font = "30px Courier New";
 				
 				ctx.fillText(teamText+ " has scored!",80,250);
