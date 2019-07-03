@@ -228,9 +228,13 @@ class App extends Component {
 		// Collision between ball and paddles
 		this.paddles.forEach(paddle => {
 			// The below statement is to convert an array of objects {x,y} to array of numbers  
-			let hitboxArr = paddle.getHitbox().flatMap(element => {
-				return [element.x,element.y];
-			}); 
+			let hitbox = paddle.getHitbox();
+			let hitboxArr = [];
+			hitbox.forEach(e => {
+				hitboxArr.push(e.x);
+				hitboxArr.push(e.y);
+			})
+			
 			// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
 			if (intersects.circlePolygon(this.ball.x, this.ball.y,this.ball.radius,hitboxArr)) {
 				let newVelocity = paddle.getReflection(this.ball);
