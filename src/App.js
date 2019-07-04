@@ -234,7 +234,7 @@ class App extends Component {
 				hitboxArr.push(e.x);
 				hitboxArr.push(e.y);
 			})
-			
+
 			// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
 			if (intersects.circlePolygon(this.ball.x, this.ball.y,this.ball.radius,hitboxArr)) {
 				let newVelocity = paddle.getReflection(this.ball);

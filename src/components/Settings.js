@@ -88,10 +88,12 @@ export default class Settings extends React.Component {
 		const content = (
 			<div style = {dropdownContent}>
 				<div style = {categoryHeader}>
-					<div>Enable AI</div>
+					<div>Enable AI </div>
 					<div style = {{display:"flex" , flexDirection:"row"}}>
 						{AICheckboxArray}
 					</div>
+					<div>Note: This feature was added after milestone 2</div>
+					<div>Settings are applied when you reset game</div>
 				</div>
 			</div>
 		)
