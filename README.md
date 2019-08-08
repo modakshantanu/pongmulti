@@ -1,3 +1,3 @@
-Pong++
+Multiplayer version of modakshantanu/pong
 
-Play Now! https://modakshantanu.github.io/pong/
+Link TBA
