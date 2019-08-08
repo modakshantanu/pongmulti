@@ -1,6 +1,8 @@
 
 import {distance2d ,rotateVector, reflection, angleBetween} from '../utils/2d';
 import intersects from 'intersects';
+import { randomBetween } from '../utils/math';
+import { paddleSpeed, ballInitSpeed } from '../utils/constants';
 
 // Class that handles drawing the paddle
 export default class Paddle {
@@ -12,7 +14,7 @@ export default class Paddle {
 		this.x2 = args.x2 || 0;
 		this.y2 = args.y2 || 0;
 		this.hidden = args.hidden;
-	
+		this.color = args.color || "#000";
 		
 		// Depth and width are dimensions of the paddle
 		this.depth = args.depth || 10;
@@ -34,20 +36,20 @@ export default class Paddle {
 		// Ex. if a paddle is 10px wide and the total length is 100px, min and max pos will be 5% and 95% 
 		this.minPosition = 100*(this.width/this.slidinglength)/2;
 		this.maxPosition = 100*(1 - this.width/this.slidinglength/2);
-
+		this.powerup = 0;	
+		this.powerupTimer = 0;	
+		this.inputTicks = 0;
 	}
 
-	getReflection(ball) {
+	getReflection(ball,curve) {
 		
 		// First, figure out which edge the ball collided with. 
 
 		let hitbox = this.getHitbox();
 		let edge;
 		for (let i = 0; i < 4; i++) {
-
 			edge = [hitbox[i].x, hitbox[i].y, hitbox[(i+1)%4].x, hitbox[(i+1)%4].y];
 			if (intersects.circleLine(ball.x,ball.y,ball.radius, ...edge)) break;
-
 		}
 		// Get a vector parallel to the edge
 		let edgeVector = {x:edge[2] - edge[0], y: edge[3] - edge[1]}; 
@@ -74,41 +76,52 @@ export default class Paddle {
 		
 		let ref = reflection({x: ball.dx, y: ball.dy}, normalVector, 1.0);
 		// Add the vector from paddle to ball, to increase the ball speed on each hit
-		ref.x += (ball.x - this.paddleCenterX)*0.05;
-		ref.y += (ball.y - this.paddleCenterY)*0.05;
+		ref.x += (ball.x - this.paddleCenterX)*0.04*(ballInitSpeed/3);
+		ref.y += (ball.y - this.paddleCenterY)*0.04*(ballInitSpeed/3);
 
 		let paddleVelocity = {x: this.paddleCenterX - this.previousCenterX, y: this.paddleCenterY-this.previousCenterY};
 		if (paddleVelocity.x === 0 && paddleVelocity.y === 0) {
 			return ref;
 		}
+
+
 	
 
 		// Deflect the ball further based on the movvement of the paddle
-		ref = rotateVector(ref, angleBetween(ref,paddleVelocity)*0.2);
+		ref = rotateVector(ref, angleBetween(ref,paddleVelocity)*0.2)//*Math.sqrt(paddleVelocity.x**2 + paddleVelocity.y**2));
+
+		if (curve) {
+			let angle = angleBetween(paddleVelocity,{x:ball.dx, y:ball.dy});
+			ball.dr += angle/20 + randomBetween(-0.1,0.1);
+		}
 		return ref;
 	}
 
-	render(state,input) {
+	update(state,input){
 		if (this.hidden) return;
-		var ctx = state.context;
-		
+		if (input.left || input.right) {
+			this.inputTicks++;
+		} else {
+			this.inputTicks = 1;
+		}
 
-	
-		// Move the paddle based on keyboard input
+		var delta = paddleSpeed;
+		
 		if (input.right) {
-			this.position++;
+			this.position+=delta;
 		}
 
 		if (input.left) {
-			this.position--;
+			this.position-=delta;
 		}
+	
 
 		// Stop it from going beyond the limit
 		if (this.position > this.maxPosition) this.position = this.maxPosition;
 		if (this.position < this.minPosition) this.position = this.minPosition;
 
 		// Get x and y position of paddle center
-		this.position = Math.round(this.position);
+		//this.position = Math.round(this.position);
 
 		// Holds the previous coordinates of the paddle in the previous frame
 		// Used to see if the paddle is moving
@@ -119,21 +132,25 @@ export default class Paddle {
 		this.paddleCenterY = (this.y1*(1-this.position/100) + this.y2*this.position/100);
 
 		
+	}
 
+	draw(state) {
+		if (this.hidden) return;
+		var ctx = state.context;
 		ctx.save();
 		ctx.translate(0.5,0.5);
 		ctx.strokeStyle = "#000000";
+
 		ctx.fillStyle = "#888888";
-		
 		ctx.translate(this.paddleCenterX, this.paddleCenterY);
 		ctx.rotate(this.tiltAngle );
 		// Draw paddle with fillRect()
 		ctx.fillRect(-this.depth/2,-this.width/2,this.depth,this.width);
 		
 		ctx.restore();
-		
-
 	}
+
+	
 
 	getHitbox() {
 
@@ -164,5 +181,24 @@ export default class Paddle {
 			return {x:u + this.paddleCenterX,y: v + this.paddleCenterY}
 		});
 	
+	}
+
+	getInnerWall() {
+	
+		let offset = rotateVector({
+			x: this.depth/2,
+			y: 0
+		},this.tiltAngle);
+		if (distance2d(this.x1,this.y1,250,250) < distance2d(this.x1+offset.x, this.y1+offset.y,250,250)) {
+			
+			offset.x *= -1; offset.y *= -1;
+		}
+		return {
+			x1: this.x1 + offset.x,
+			y1: this.y1 + offset.y,
+			x2: this.x2 + offset.x,
+			y2: this.y2 + offset.y
+		}
+		
 	}
 }

@@ -39,7 +39,7 @@ export class Wall {
 
 	}
 
-	render(state) {
+	draw(state) {
 		var ctx  = state.context;
 
 		ctx.save();

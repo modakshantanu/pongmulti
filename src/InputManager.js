@@ -13,6 +13,12 @@ const KEY = {
 	EQUAL: 187, // Blue 1 right
  };
 
+ const codeMap = {
+	"187": "=",
+	"186": ";",
+	"189": "-",
+ }
+
  export default class InputManager {
 
 	bindKeys() {
@@ -29,53 +35,60 @@ const KEY = {
 		this.pressedKeys.red1 = {right:0,left:0};
 		this.pressedKeys.red2 = {right:0,left:0};
 		this.pressedKeys.red3 = {right:0,left:0};
+		this.pressedKeys.redpower = false;
 		this.pressedKeys.blue1 = {right:0,left:0};
 		this.pressedKeys.blue2 = {right:0,left:0};
 		this.pressedKeys.blue3 = {right:0,left:0};
+		this.pressedKeys.bluepower = false;
 	}
+
 
 	// The pressedKeys object holds either a 0 or a 1 for each key whether it is pressed or not
 	// It is always updated in real time once the eventListener is added
 	handleKeys(value, e){
 		let keys = this.pressedKeys;
-		switch (e.keyCode) {
-			case KEY.ONE:
+		
+		switch (e.key == "Unidentified" ? codeMap[e.keyCode] : e.key) {
+			case '1': 
 				keys.red1.left = value;
 				break;
-			case KEY.TWO:
+			case '2':
 				keys.red1.right = value;
 				break;
-			case KEY.S:
+			case 's':case 'S':
 				keys.red2.left = value;
 				break;
-			case KEY.D:
+			case 'd':case 'D':
 				keys.red2.right = value;
 				break;
-			case KEY.V:
+			case 'v':case 'V':
 				keys.red3.left = value;
 				break;
-			case KEY.B:
+			case 'b':case 'B':
 				keys.red3.right = value;
 				break;
-			case KEY.N:
+			case 'n':case 'N':
 				keys.blue3.left = value;
 				break;
-			case KEY.M:
+			case 'm':case 'M':
 				keys.blue3.right = value;
 				break;
-			case KEY.L:
+			case 'l':case 'L':
 				keys.blue2.left = value;
 				break;
-			case KEY.SEMICOLON:
+			case ';':
 				keys.blue2.right = value;
 				break;
-			case KEY.MINUS:
+			case '-':
 				keys.blue1.left = value;
 		
 				break;
-			case KEY.EQUAL:
+			case '=':
+				
 				keys.blue1.right = value;
 				break;
+			case '3': keys.redpower = value; break;
+			case '0': keys.bluepower = value; break;
 				default:
 		 }
 		 this.pressedKeys = keys;
