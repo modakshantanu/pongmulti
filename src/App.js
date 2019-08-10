@@ -13,6 +13,9 @@ import Settings from './components/Settings';
 import { Particle } from './gameObjects/Particle';
 import {PlayerCard} from './gameObjects/PlayerCard'
 import {updateRate, ballInitSpeed} from './utils/constants';
+import { QueueBox } from './components/QueueBox';
+import * as api from './api';
+import { isNumber } from 'util';
 
 
 
@@ -20,12 +23,18 @@ const backgroundStyling = {
 	backgroundColor : "	#fff"
 }
 
+const PacketType = {
+	POSITION:0,
+	STATE:1
+}
+
 const GameState = {
 	NOT_QUEUEING:0,
 	QUEUEING:1,
-	RUNNING:2,
-	GOAL_SCORED:3,
-	POST_MATCH:4,
+	PRE_MATCH:2,
+	RUNNING:3,
+	GOAL_SCORED:4,
+	POST_MATCH:5,
 }
 
 
@@ -47,12 +56,15 @@ class App extends Component {
 		this.state = {
 			input: new InputManager(), // TODO UPDATE This for single player
 			context: null, // the canvas context,
-			gameState: GameState.RUNNING,
+			gameState: GameState.NOT_QUEUEING,
 			redScore:0,
 			blueScore:0,
+			redHandle:"Red 1",
+			blueHandle:"Blue 1",
 			settings: {
 				trail:true,
 			},
+			handle:""
 
 		}
 
@@ -62,8 +74,19 @@ class App extends Component {
 		this.updatePaddles = this.updatePaddles.bind(this);
 		this.changeSettings = this.changeSettings.bind(this);
 		this.createParticle = this.createParticle.bind(this);
+		this.sendInput = this.sendInput.bind(this);
 		this.update = this.update.bind(this);
 		this.draw = this.draw.bind(this);
+		this.changeGameState = this.changeGameState.bind(this);
+		this.changeHandle = this.changeHandle.bind(this);
+		this.stateUpdate = this.stateUpdate.bind(this);
+		this.posUpdate = this.posUpdate.bind(this);
+		this.winningTeam = "";
+		this.tickCounter = 0;
+		this.cutsceneCounter = 0;
+		this.gameId = -1;
+		this.ourPlayer = -1;
+		this.prevInput = {left:false,right:false};
 		
 	}
 
@@ -75,14 +98,16 @@ class App extends Component {
 		this.reset1v1();
 		animationFrameId = requestAnimationFrame(this.draw); 
 		setInterval(this.update, 1000/updateRate);
+		api.subscribe(this.matchFound.bind(this),this.stateUpdate,this.posUpdate,this.gameOver.bind(this));
 
 	}
 
 
 
 	reset1v1() {
-		this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
+		//this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
 		this.particles = []; 
+		this.tickCounter = 0;
 		
 		this.walls = [
 			new Wall({x1:0,y1:100,x2:500,y2:100}),
@@ -97,38 +122,120 @@ class App extends Component {
 			new Paddle({x1:490,y1:400,x2:490,y2:100,color:"blue"}),
 		]
 		this.playerCards = [
-			new PlayerCard({playerName:"Red 1", color:"red", x:25, y:50,left:"v", right:"b"}),
-			new PlayerCard({playerName:"Blue 1",color:"blue", x:475,y:50,left:'-',right:"="})
+			new PlayerCard({playerName:this.state.redHandle, color:"red", x:25, y:50,left:"v", right:"b"}),
+			new PlayerCard({playerName:this.state.blueHandle,color:"blue", x:475,y:50,left:'-',right:"="})
 		]
+		
 		
 		this.ball = new Ball({x:250, y: 250,});
 		this.resetPositions();
+	}
 
+
+	stateUpdate(packet) {
+		switch(packet.state) {
+			case GameState.PRE_MATCH:
+				this.cutsceneCounter = 360;
+				this.setState({gameState:GameState.PRE_MATCH});
+				break;
+
+			case GameState.RUNNING:
+				this.cutsceneCounter = 0;
+				this.setState({gameState:GameState.RUNNING});
+				break;
+			
+			case GameState.GOAL_SCORED:
+				this.cutsceneCounter = 180;
+				this.setState({gameState:GameState.GOAL_SCORED, redScore:packet.redScore, blueScore:packet.blueScore});
+				goalText = (packet.scorer === 0? this.state.redHandle:this.state.blueHandle)+ " has scored";
+				goalTextStyle = (packet.scorer === 0? "red":"blue");
+				this.tickCounter = packet.tickCounter;
+
+				break;
+
+			default:
+				console.log("INVALID PACKET");
+		}
+	}
+
+	posUpdate(packet) {
+
+		if(this.state.gameState !== GameState.RUNNING) return;
+		let tickDiff = this.tickCounter - packet.frame;
+
+		let tempBall = new Ball({...packet.ball});
+		//console.log(tempBall);
+		this.ball.x = tempBall.x; this.ball.y = tempBall.y;
+		this.ball.dx = tempBall.dx; this.ball.dy = tempBall.dy;
+		this.ball.color = tempBall.color;
+
+		
+
+		for (let i = 0; i < 2; i++) {
+			this.paddles[i].updatePosition(packet.paddlePos[i]);
+		}	
+		return;
+
+		// Predict position of ball after tickDiff frames
+		for (let i = 0; i < tickDiff; i++) {
+
+			this.paddles.forEach(paddle => {
+				// The below statement is to convert an array of objects {x,y} to array of numbers  
+				let hitbox = paddle.getHitbox();
+				let hitboxArr = [];
+				hitbox.forEach(e => {
+					hitboxArr.push(e.x);
+					hitboxArr.push(e.y);
+				})
 	
+				// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
+				if (intersects.circlePolygon(tempBall.x, tempBall.y,tempBall.radius,hitboxArr)) {
+					let newVelocity = paddle.getReflection(tempBall,this.state.settings.curveball);
+					tempBall.dx = newVelocity.x;
+					tempBall.dy = newVelocity.y;
+					tempBall.x += tempBall.dx; tempBall.y += tempBall.dy;
+					tempBall.color = paddle.color;
+				}
+				
+			})
+	
+			// Collision between ball and walls
+			this.walls.forEach(wall => {
+				if (intersects.circleLine(tempBall.x, tempBall.y, tempBall.radius, wall.x1, wall.y1, wall.x2, wall.y2)) {
+					let newVelocity = wall.getReflection(tempBall);
+					tempBall.dx = newVelocity.x;
+					tempBall.dy = newVelocity.y;
+				}
+			})
+	
+			tempBall.update();
+		}
+
+		this.ball.x = tempBall.x; this.ball.y = tempBall.y;
+		this.ball.dx = tempBall.delete; this.ball.dy = tempBall.dy;
+		this.ball.color = tempBall.color;
 	}
 
 	resetPositions() {
 		this.particles = [];
-		this.setState({redpower:0, bluepower:0});
-		let randomAngle = randomBetween(-Math.PI/4,Math.PI/4);
-		let initialBallVelocity = rotateVector({x:ballInitSpeed,y:0},randomAngle);
+		// let randomAngle = randomBetween(-Math.PI/4,Math.PI/4);
+		// let initialBallVelocity = rotateVector({x:ballInitSpeed,y:0},randomAngle);
 
-		// Make the ball go either right or left with 50:50 chance
-		if (Math.random() < 0.5) { 
-			initialBallVelocity.x *= -1;
-			initialBallVelocity.y *= -1;
-		}
-		this.ball = new Ball({x: 250, y: 250,dx: initialBallVelocity.x, dy: initialBallVelocity.y});
+		// // Make the ball go either right or left with 50:50 chance
+		// if (Math.random() < 0.5) { 
+		// 	initialBallVelocity.x *= -1;
+		// 	initialBallVelocity.y *= -1;
+		// }
+		this.ball = new Ball({x: 250, y: 250,dx:0,dy:0});
 		this.paddles.forEach(paddle => {
 			paddle.position = 50;
 		})
 	}
 
 	updatePaddles() {
+		if (this.ourPlayer === -1) return;
 		let keys = this.state.input.pressedKeys;
-
-		this.paddles[0].update(this.state,keys.red1); 
-		this.paddles[1].update(this.state,keys.blue1);
+		this.paddles[this.ourPlayer].update(this.state,keys);
 		
 	}
 
@@ -137,14 +244,50 @@ class App extends Component {
 			this.particles.push(new Particle(args));
 	}
 
+
+
+	
+
+
 	update() {
-		tickTock = !tickTock;
-		if (this.state.gameState === GameState.GOAL_SCORED) {
+
+		if (this.state.gameState === GameState.NOT_QUEUEING || this.state.gameState === GameState.QUEUEING) {
 			return;
 		}
 
+		if (this.state.gameState === GameState.PRE_MATCH || this.state.gameState === GameState.GOAL_SCORED) {
+			this.cutsceneCounter--;
+			if (this.cutsceneCounter === 0) {
+
+				if (this.state.gameState === GameState.GOAL_SCORED && (this.state.redScore === 2 || this.state.blueScore === 2)) {
+					
+					this.winningTeam = (this.state.redScore > this.state.blueScore ? "Red ":"Blue");
+
+					this.resetPositions();
+					this.setState({gameState:GameState.POST_MATCH});
+					this.cutsceneCounter = 180;
+				} else {
+					this.setState({gameState:GameState.RUNNING});
+				}
+			}
+
+			
+		}
+
+		if (this.state.gameState === GameState.POST_MATCH) {
+			this.cutsceneCounter--;
+			if (this.cutsceneCounter === 0) {
+				this.setState({gameState:GameState.NOT_QUEUEING});
+			}
+		}
+
+		if (this.state.gameState === GameState.RUNNING) {
+			this.tickCounter++;
+		}
+
+
 		// Creating new particles
-		if(tickTock) {
+		if(this.tickCounter % 2 === 0) {
 			while (this.particles[0] && this.particles[0].delete) {
 				this.particles.shift();
 			}
@@ -165,7 +308,7 @@ class App extends Component {
 
 			// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
 			if (intersects.circlePolygon(this.ball.x, this.ball.y,this.ball.radius,hitboxArr)) {
-				let newVelocity = paddle.getReflection(this.ball,this.state.settings.curveball);
+				let newVelocity = paddle.getReflection(this.ball);
 				this.ball.dx = newVelocity.x;
 				this.ball.dy = newVelocity.y;
 				this.ball.x += this.ball.dx; this.ball.y += this.ball.dy;
@@ -187,54 +330,29 @@ class App extends Component {
 	
 	
 		this.ball.update(this.state);
+
 		this.updatePaddles();
 
-		//console.log(this.particles.length)
-		var ctx = this.state.context;
-		// Collision between ball and goals
-		this.goals.forEach(goal => {
-			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, goal.x1, goal.y1, goal.x2, goal.y2)) {
-				// Update the score
-				this.draw(0,true);
-				let teamText;
-				if (goal.teamId === Teams.RED) {
-					this.setState(state => ({blueScore: state.blueScore + 1}));
-					teamText = "Blue team";
-					ctx.fillStyle = "blue";
-				} else {
-					this.setState(state => ({redScore: state.redScore + 1}));
-					teamText = "Red team";
-					ctx.fillStyle = "red";
-				}
+		// Dont detect collision with goal. That is server's job
 
-				goalTextStyle = "30px Courier New";
-				goalText = teamText+ " has scored!";
-				
-				
-				this.setState({gameState: GameState.GOAL_SCORED});
-				
-				setTimeout(() => {
-					this.resetPositions();
-
-					this.setState({gameState: GameState.RUNNING});
-
-				},1500);
-
-			}
-		})
+		this.sendInput(this.state.input.pressedKeys);
+		
 	}
 
-	draw(timeStam , singleFrame = false) {
+	draw() {
 	
 	
 		const ctx = this.state.context;
 		if (this.state.gameState === GameState.GOAL_SCORED) {
+			
 			ctx.font = "30px Courier New";
 			ctx.fillStyle = goalTextStyle;
 			ctx.fillText(goalText,80,250);
-			if (singleFrame === false) animationFrameId = requestAnimationFrame(this.draw);
+			animationFrameId = requestAnimationFrame(this.draw);
 			return;
 		}
+
+		
 
 
 		ctx.save();
@@ -243,6 +361,24 @@ class App extends Component {
 		ctx.fillRect(0,0,500,500); // Erase the previous contents with this
 
 
+
+		if (this.state.gameState === GameState.PRE_MATCH) {
+			
+			ctx.font = "30px Courier New";
+			ctx.fillStyle = "#000";
+			ctx.fillText("First to 5",150,220);
+			ctx.fillText("Good Luck!",150,290);
+
+
+
+
+		}
+		if (this.state.gameState === GameState.POST_MATCH) {
+			ctx.font = "30px Courier New";
+			ctx.fillStyle = "#000";
+			var postGameText = this.winningTeam + " Team Wins!";
+			ctx.fillText(postGameText,120,220);
+		}
 
 
 		this.walls.forEach(wall => wall.draw(this.state));
@@ -253,11 +389,26 @@ class App extends Component {
 		
 	
 		this.paddles.forEach(p => p.draw(this.state));
+		
+		
+		
+		//if (isNaN(this.ball.x)) console.log(this.ball.x);
 		this.ball.draw(this.state);
 
 
 		ctx.restore();
-		if (singleFrame === false) animationFrameId = requestAnimationFrame(this.draw);
+		animationFrameId = requestAnimationFrame(this.draw);
+	}
+
+	sendInput(keys) {
+
+		if (keys.left === this.prevInput.left && keys.right === this.prevInput.right) {
+			//return;
+		} 
+		
+		this.prevInput.left = keys.left;
+		this.prevInput.right = keys.right;
+		api.sendInput({keys,tick:this.tickCounter,ourPlayer:this.ourPlayer,gameId:this.gameId});
 	}
 
 	componentWillUnmount() {
@@ -267,18 +418,50 @@ class App extends Component {
 	changeSettings(newSettings) {
 		this.setState({settings:newSettings});
 	}
+
+	changeHandle(newHandle) {
+		this.setState({handle:newHandle});
+	}
+
+	queueingAck() { 
+		this.setState({gameState:GameState.QUEUEING});
+	}
+
+	matchFound(data) {
+		this.gameId = data.gameId;
+		this.ourPlayer = data.ourPlayer;
+		this.setState({redHandle:data.redHandle,blueHandle:data.blueHandle,gameState:GameState.RUNNING} , this.reset1v1)
+	}
+
+	gameOver(data) {
+		this.setState({gameState:GameState.NOT_QUEUEING});
+	}
+
+	changeGameState(newState) {
+		if (newState === GameState.QUEUEING) {
+			api.queue(this.state.handle,this.queueingAck.bind(this));
+		}
+		else 
+			this.setState({gameState:newState});
+		
+		if (newState === GameState.GOAL_SCORED) {
+			this.resetPositions();
+		}
+	}
 	render() {
 		return (
 			<div style = {backgroundStyling}>
 
 			<div >
-				<h1>Pong++</h1>
-				
+				<h1>Pong++ Multiplayer</h1>
+				<center>
+					<QueueBox handle = {this.state.handle} gameState = {this.state.gameState} handleChangeHandler = {this.changeHandle} 
+					gameStateChangeHandler = {this.changeGameState}/>
+
+				</center>
 				<canvas ref = "canvas" width = "501" height = "501"/>
 				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
-				<center>
-					<button id = "1v1" onClick = {this.reset1v1}>Reset 1v1</button> 	
-				</center>
+				
 				<Settings settings = {this.state.settings} changeHandler = {this.changeSettings}/>
 
 			

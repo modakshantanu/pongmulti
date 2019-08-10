@@ -5,7 +5,7 @@ export class Particle {
 		this.y = args.y;
 		this.lifetime = 40;
 		this.delete = false;
-		this.color = args.color;
+		this.color = args.color || "#888";
 	}
 
 	draw(state) {

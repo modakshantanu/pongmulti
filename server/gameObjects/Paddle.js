@@ -1,18 +1,19 @@
 
-import {distance2d ,rotateVector, reflection, angleBetween} from '../utils/2d';
-import intersects from 'intersects';
-import { randomBetween } from '../utils/math';
-import { paddleSpeed, ballInitSpeed } from '../utils/constants';
+let {distance2d ,rotateVector, reflection, angleBetween} = require('../utils/2d');
+let intersects = require('intersects');
+let { randomBetween } = require('../utils/math');
+let constants =  require('../utils/constants');
 
 // Class that handles drawing the paddle
-export default class Paddle {
+ class Paddle {
 	constructor(args) {
-
+		
 		// x1,y1 and x2,y2 represent the starting and ending point where the paddle can slide in between
 		this.x1 = args.x1 || 0;
 		this.y1 = args.y1 || 0;
 		this.x2 = args.x2 || 0;
 		this.y2 = args.y2 || 0;
+		this.hidden = args.hidden;
 		this.color = args.color || "#000";
 		
 		// Depth and width are dimensions of the paddle
@@ -23,8 +24,6 @@ export default class Paddle {
 		// Ex. 0 means it is at (x1,y1) , 100 means at (x2,y2), 50 means it is in between
 		this.paddleCenterX = (this.x1+this.x2)/2;
 		this.paddleCenterY = (this.y1+this.y2)/2;
-		this.previousCenterX = this.paddleCenterX;
-		this.previousCenterY = this.paddleCenterY;
 
 		this.slidinglength = distance2d(this.x1,this.y1,this.x2,this.y2);
 		if (this.y1 === this.y2) {
@@ -38,21 +37,13 @@ export default class Paddle {
 		this.minPosition = 100*(this.width/this.slidinglength)/2;
 		this.maxPosition = 100*(1 - this.width/this.slidinglength/2);
 		this.powerup = 0;	
-		this.powerupTimer = 0;	
-		this.inputTicks = 0;
-	}
-
-	updatePosition(pos) {
-		this.previousCenterX = this.paddleCenterX;
-		this.previousCenterY = this.paddleCenterY;
-		this.position = pos;
-		this.paddleCenterX = (this.x1*(1-this.position/100) + this.x2*this.position/100);
-		this.paddleCenterY = (this.y1*(1-this.position/100) + this.y2*this.position/100);
+		this.previousPos = 50;
 	}
 
 	getReflection(ball) {
-
+		
 		// First, figure out which edge the ball collided with. 
+
 		let hitbox = this.getHitbox();
 		let edge;
 		for (let i = 0; i < 4; i++) {
@@ -83,10 +74,9 @@ export default class Paddle {
 
 		
 		let ref = reflection({x: ball.dx, y: ball.dy}, normalVector, 1.0);
-		
 		// Add the vector from paddle to ball, to increase the ball speed on each hit
-		ref.x += (ball.x - this.paddleCenterX)*0.04*(ballInitSpeed/3);
-		ref.y += (ball.y - this.paddleCenterY)*0.04*(ballInitSpeed/3);
+		ref.x += (ball.x - this.paddleCenterX)*0.04*(constants.ballInitSpeed/3);
+		ref.y += (ball.y - this.paddleCenterY)*0.04*(constants.ballInitSpeed/3);
 
 		let paddleVelocity = {x: this.paddleCenterX - this.previousCenterX, y: this.paddleCenterY-this.previousCenterY};
 		if (paddleVelocity.x === 0 && paddleVelocity.y === 0) {
@@ -98,19 +88,16 @@ export default class Paddle {
 
 		// Deflect the ball further based on the movvement of the paddle
 		ref = rotateVector(ref, angleBetween(ref,paddleVelocity)*0.2)//*Math.sqrt(paddleVelocity.x**2 + paddleVelocity.y**2));
+
+	
 		return ref;
 	}
 
-	update(state,input){
-		if (this.hidden) return;
-		if (input.left || input.right) {
-			this.inputTicks++;
-		} else {
-			this.inputTicks = 1;
-		}
+	update(input){
 
-		var delta = paddleSpeed;
-		
+
+		var delta = constants.paddleSpeed;
+		this.previousPos = this.position;
 		if (input.right) {
 			this.position+=delta;
 		}
@@ -125,6 +112,7 @@ export default class Paddle {
 		if (this.position < this.minPosition) this.position = this.minPosition;
 
 		// Get x and y position of paddle center
+		//this.position = Math.round(this.position);
 
 		// Holds the previous coordinates of the paddle in the previous frame
 		// Used to see if the paddle is moving
@@ -137,25 +125,21 @@ export default class Paddle {
 		
 	}
 
-	draw(state) {
+	// draw(state) {
+	// 	if (this.hidden) return;
+	// 	var ctx = state.context;
+	// 	ctx.save();
+	// 	ctx.translate(0.5,0.5);
+	// 	ctx.strokeStyle = "#000000";
 
-		this.paddleCenterX = (this.x1*(1-this.position/100) + this.x2*this.position/100);
-		this.paddleCenterY = (this.y1*(1-this.position/100) + this.y2*this.position/100);
-
-		if (this.hidden) return;
-		var ctx = state.context;
-		ctx.save();
-		ctx.translate(0.5,0.5);
-		ctx.strokeStyle = "#000000";
-
-		ctx.fillStyle = "#888888";
-		ctx.translate(this.paddleCenterX, this.paddleCenterY);
-		ctx.rotate(this.tiltAngle );
-		// Draw paddle with fillRect()
-		ctx.fillRect(-this.depth/2,-this.width/2,this.depth,this.width);
+	// 	ctx.fillStyle = "#888888";
+	// 	ctx.translate(this.paddleCenterX, this.paddleCenterY);
+	// 	ctx.rotate(this.tiltAngle );
+	// 	// Draw paddle with fillRect()
+	// 	ctx.fillRect(-this.depth/2,-this.width/2,this.depth,this.width);
 		
-		ctx.restore();
-	}
+	// 	ctx.restore();
+	// }
 
 	
 
@@ -209,3 +193,4 @@ export default class Paddle {
 		
 	}
 }
+module.exports = Paddle;
