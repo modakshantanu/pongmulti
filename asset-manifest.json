@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/pongmulti/static/css/main.005ad91d.chunk.css",
+    "main.js": "/pongmulti/static/js/main.8f20a50a.chunk.js",
+    "main.js.map": "/pongmulti/static/js/main.8f20a50a.chunk.js.map",
+    "runtime~main.js": "/pongmulti/static/js/runtime~main.e0159c4d.js",
+    "runtime~main.js.map": "/pongmulti/static/js/runtime~main.e0159c4d.js.map",
+    "static/js/2.05a8efe7.chunk.js": "/pongmulti/static/js/2.05a8efe7.chunk.js",
+    "static/js/2.05a8efe7.chunk.js.map": "/pongmulti/static/js/2.05a8efe7.chunk.js.map",
+    "index.html": "/pongmulti/index.html",
+    "precache-manifest.e47cfd6e5ba295b3a0c1331be0c080dd.js": "/pongmulti/precache-manifest.e47cfd6e5ba295b3a0c1331be0c080dd.js",
+    "service-worker.js": "/pongmulti/service-worker.js",
+    "static/css/main.005ad91d.chunk.css.map": "/pongmulti/static/css/main.005ad91d.chunk.css.map"
+  }
+}
