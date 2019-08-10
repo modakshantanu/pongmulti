@@ -259,7 +259,7 @@ class App extends Component {
 			this.cutsceneCounter--;
 			if (this.cutsceneCounter === 0) {
 
-				if (this.state.gameState === GameState.GOAL_SCORED && (this.state.redScore === 2 || this.state.blueScore === 2)) {
+				if (this.state.gameState === GameState.GOAL_SCORED && (this.state.redScore === 5 || this.state.blueScore === 5)) {
 					
 					this.winningTeam = (this.state.redScore > this.state.blueScore ? "Red ":"Blue");
 

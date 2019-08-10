@@ -2,7 +2,7 @@ let Game = require('./Game');
 let constants = require('./utils/constants');
 
 var io = require('socket.io')();
-const port = 8000;
+const port = process.env.PORT|| 8000;
 
 
 

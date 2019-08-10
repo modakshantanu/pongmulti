@@ -207,7 +207,7 @@ class Game {
 				this.sendPacket(packet,this.blueId);
 				this.cutsceneTimer = 180;
 
-				if (this.redScore === 2 || this.blueScore === 2) {
+				if (this.redScore === 5 || this.blueScore === 5) {
 					this.delete = true;
 				}
 			}
