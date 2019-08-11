@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/pongmulti/static/css/main.005ad91d.chunk.css",
-    "main.js": "/pongmulti/static/js/main.8f20a50a.chunk.js",
-    "main.js.map": "/pongmulti/static/js/main.8f20a50a.chunk.js.map",
-    "runtime~main.js": "/pongmulti/static/js/runtime~main.e0159c4d.js",
-    "runtime~main.js.map": "/pongmulti/static/js/runtime~main.e0159c4d.js.map",
-    "static/js/2.05a8efe7.chunk.js": "/pongmulti/static/js/2.05a8efe7.chunk.js",
-    "static/js/2.05a8efe7.chunk.js.map": "/pongmulti/static/js/2.05a8efe7.chunk.js.map",
-    "index.html": "/pongmulti/index.html",
-    "precache-manifest.e47cfd6e5ba295b3a0c1331be0c080dd.js": "/pongmulti/precache-manifest.e47cfd6e5ba295b3a0c1331be0c080dd.js",
-    "service-worker.js": "/pongmulti/service-worker.js",
-    "static/css/main.005ad91d.chunk.css.map": "/pongmulti/static/css/main.005ad91d.chunk.css.map"
+    "main.css": "../build/static/css/main.005ad91d.chunk.css",
+    "main.js": "../build/static/js/main.dfdc2848.chunk.js",
+    "main.js.map": "../build/static/js/main.dfdc2848.chunk.js.map",
+    "runtime~main.js": "../build/static/js/runtime~main.2fccd8bc.js",
+    "runtime~main.js.map": "../build/static/js/runtime~main.2fccd8bc.js.map",
+    "static/js/2.4f792635.chunk.js": "../build/static/js/2.4f792635.chunk.js",
+    "static/js/2.4f792635.chunk.js.map": "../build/static/js/2.4f792635.chunk.js.map",
+    "index.html": "../build/index.html",
+    "precache-manifest.0d438d484f6734998abc6ff0a7050c34.js": "../build/precache-manifest.0d438d484f6734998abc6ff0a7050c34.js",
+    "service-worker.js": "../build/service-worker.js",
+    "static/css/main.005ad91d.chunk.css.map": "../build/static/css/main.005ad91d.chunk.css.map"
   }
 }
