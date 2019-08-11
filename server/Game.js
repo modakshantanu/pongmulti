@@ -186,10 +186,10 @@ class Game {
 		this.goals.forEach(goal => {
 			if (intersects.circleLine(this.ball.x, this.ball.y, this.ball.radius, goal.x1, goal.y1, goal.x2, goal.y2)) {
 				this.gameState = GameState.GOAL_SCORED;
-				let scorer = 0;
-				if (goal.color === "red") {
+				let scorer = 1;
+				if (goal.color === "blue") {
 					this.redScore++;
-					scorer = 1;
+					scorer = 0;
 				}
 				else 
 					this.blueScore++;

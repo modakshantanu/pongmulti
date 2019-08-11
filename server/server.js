@@ -2,13 +2,14 @@ let Game = require('./Game');
 let constants = require('./utils/constants');
 
 var io = require('socket.io')();
-const port = process.env.PORT|| 8000;
-
-
+const port = process.env.PORT || 8000;
+const staticPort = 4000;
+var express = require('express');
+var app = express();
+var path = require("path")
 
 var queue = [];
 var games = {};
-
 
 var nextGameId = 0;
 
@@ -40,7 +41,7 @@ io.on('connection', (client) => {
 
 	client.on('queueing' , (data) => {
 
-		console.log(client.id+ " queueing, data = " + data);
+		console.log(client.id+ " queueing, handle = " + data);
 		let playerObj = {
 			id:client.id,
 			handle:data
@@ -91,6 +92,14 @@ setInterval(() => {
 },constants.updateTime)
 
 
+
+app.listen(staticPort);
+
+app.use(express.static(path.join(__dirname, '../build')));
+
+app.get('/', function(req, res) {
+  res.sendFile(path.join(__dirname, '../build', 'index.html'));
+});
 
 
 io.listen(port);
