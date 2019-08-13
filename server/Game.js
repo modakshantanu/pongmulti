@@ -70,6 +70,8 @@ class Game {
 		this.gameState = GameState.PRE_MATCH;
 		this.delete = false;
 
+		this.redBuffer = []; this.blueBuffer = [];
+
 	
 	}
 
@@ -77,7 +79,7 @@ class Game {
 	resetPositions() {
 		let initialBallVelocity ={x:constants.ballInitSpeed,y:0};
 		// initialBallVelocity.x = 0;
-		this.inputPackets = [];
+		this.redBuffer = []; this.blueBuffer = [];
 		this.redInput = {left:false,right:false};
 		this.blueInput = {left:false,right:false};
 
@@ -96,12 +98,16 @@ class Game {
 	newInput(data) {
 		if (this.gameState !== GameState.RUNNING) return;
 		// console.log("Received input from ",data.ourPlayer);
-		this.inputPackets.push({
+		let packet = {
 			player:data.ourPlayer,
 			frame:data.tick,
 			input:data.keys
-		})
-
+		};	
+		if (data.ourPlayer === 0) {
+			this.redBuffer.push(packet);
+		} else {
+			this.blueBuffer.push(packet)
+		}
 	}
 
 
@@ -150,17 +156,33 @@ class Game {
 
 		let redFrame = -1, blueFrame = -1;
 
-		while (this.inputPackets.length > 0) {
-			let temp = this.inputPackets.shift();
-			if (temp.player === 0) {
-				redFrame = temp.frame;
-				this.redInput = temp.input;
+		// while (this.inputPackets.length > 0) {
+		// 	let temp = this.inputPackets.pop();
+		// 	if (temp.player === 0) {
+		// 		redFrame = temp.frame;
+		// 		this.redInput = temp.input;
+		// 	} else if (temp.player === 1) {
+		// 		blueFrame = temp.frame;
+		// 		this.blueInput = temp.input;
+		// 	}
+		// }
 
-			} else if (temp.player === 1) {
-				blueFrame = temp.frame;
-				this.blueInput = temp.input;
-			}
+		if (this.redBuffer.length > 2) {
+			let temp;
+			do {
+				temp = this.redBuffer.shift();
+			} while (this.redBuffer.length > 4) 
+			redFrame = temp.frame; this.redInput = temp.input;
 		}
+
+		if (this.blueBuffer.length > 2) {
+			let temp;
+			do {
+				temp = this.blueBuffer.shift()
+			} while (this.blueBuffer.length > 4) 
+			blueFrame = temp.frame; this.blueInput = temp.input;
+		}
+
 
 		// ball-paddle collision
 		this.paddles.forEach(paddle => {
@@ -223,7 +245,7 @@ class Game {
 		this.ball.update();
 		this.paddles[0].update(this.redInput);
 		this.paddles[1].update(this.blueInput);
-		//if (this.tickCounter < 100) console.log("Frame ",this.tickCounter,"Red left ",this.redInput.left, "Red pos",this.paddles[0].position);
+		//if (this.tickCounter < 100 && this.tickCounter > 1) console.log("F",this.tickCounter,"I",this.redInput.left, "P",this.paddles[0].position,"Nxt",(this.redBuffer[0]? this.redBuffer[0].frame : "NA"));
 		if (redFrame !== -1) {
 			let packet = {
 				type:PacketType.POSITION,

@@ -44,7 +44,7 @@ export default class Paddle {
 	}
 
 	updatePosition(pos) {
-		if (this.color === "red") console.log("Updating red paddle to ", pos)
+
 
 		if (pos < this.minPosition) pos = this.minPosition;
 		if(pos > this.maxPosition) pos = this.maxPosition;

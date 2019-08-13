@@ -55,10 +55,10 @@ io.on('connection', (client) => {
 
 	client.on('input', (data) => {
 
-		setTimeout( () => {
-		if (games.hasOwnProperty(data.gameId)) {
+		//setTimeout( () => {
+		if (games.hasOwnProperty(data.gameId)) //{
 			 games[data.gameId].newInput(data); // SIMULATES LATENCY REMOVE THIS LATER
-		}},40);
+		//}},200);
 		
 	})
 })

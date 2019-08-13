@@ -62,7 +62,7 @@ class App extends Component {
 			redHandle:"Red 1",
 			blueHandle:"Blue 1",
 			settings: {
-				trail:true,
+				trail:false,
 			},
 			handle:""
 
@@ -172,9 +172,7 @@ class App extends Component {
 		this.ball.dx = tempBall.dx; this.ball.dy = tempBall.dy;
 		this.ball.color = tempBall.color;
 
-		if (this.tickCounter % 120 === 1) {
-			console.log(packet.paddlePos, packet.paddlePrevPos,tickDiff);
-		}
+	
 
 
 		for (let i = 0; i < 2; i++) {
@@ -189,7 +187,7 @@ class App extends Component {
 					Math.abs(this.frameHistory[packet.tickCounter%1000].paddle - packet.paddlePos[i]) > 0.01
 					) {
 					
-					console.log("Diff", this.frameHistory[packet.tickCounter%1000].paddle - packet.paddlePos[i]);
+					//console.log("Diff", this.frameHistory[packet.tickCounter%1000].paddle - packet.paddlePos[i]);
 					let tempPos = packet.paddlePos[i];
 					for (let j = packet.tickCounter + 1; j <= this.tickCounter; j++) {
 						try {
@@ -265,6 +263,8 @@ class App extends Component {
 		// 	initialBallVelocity.x *= -1;
 		// 	initialBallVelocity.y *= -1;
 		// }
+		this.timer = new Date();
+		totalError = 0;
 		this.ball = new Ball({x: 250, y: 250,dx:0,dy:0});
 		this.paddles.forEach(paddle => {
 			paddle.updatePosition(50);
@@ -286,8 +286,8 @@ class App extends Component {
 	update() {
 	
 
-		if (this.tickCounter === 1 && this.state.gameState === GameState.RUNNING) start = Date.now();
-		if (this.tickCounter === 100) console.log("Time ", Date.now() - start);
+		//if (this.tickCounter === 1 && this.state.gameState === GameState.RUNNING) start = Date.now();
+		//if (this.tickCounter === 100) console.log("Time ", Date.now() - start);
 		
 		if (this.state.gameState === GameState.NOT_QUEUEING || this.state.gameState === GameState.QUEUEING) {
 			setTimeout(this.update,updateTime);
@@ -394,7 +394,10 @@ class App extends Component {
 			
 			let nextDelay = updateTime - totalError;
 			if (nextDelay < 0) nextDelay = 0;
+			//if (nextDelay === 0) console.log("Skipped frame"); 
 			//console.log("Elapsed",elapsed,"Total error", totalError, "Next delay",nextDelay);
+			//console.log(elapsed|0);
+
 			timer = Date.now();
 			setTimeout(this.update, nextDelay);
 		}
