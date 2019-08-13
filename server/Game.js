@@ -18,6 +18,7 @@ const Teams = {
 	BLUE:2
 }
 
+var start;
 
 const GameState = {
 	NOT_QUEUEING:0,
@@ -76,6 +77,9 @@ class Game {
 	resetPositions() {
 		let initialBallVelocity ={x:constants.ballInitSpeed,y:0};
 		// initialBallVelocity.x = 0;
+		this.inputPackets = [];
+		this.redInput = {left:false,right:false};
+		this.blueInput = {left:false,right:false};
 
 
 		// Make the ball go either right or left with 50:50 chance
@@ -97,11 +101,12 @@ class Game {
 			frame:data.tick,
 			input:data.keys
 		})
+
 	}
 
 
 	update() {
-		
+	
 		if (this.gameState === GameState.PRE_MATCH) {
 			let packet = {
 				type:PacketType.STATE,
@@ -121,7 +126,7 @@ class Game {
 				this.resetPositions();
 			}
 		}
-		if (this.gameState === GameState.GOAL_SCORED) {
+		else if (this.gameState === GameState.GOAL_SCORED) {
 			this.cutsceneTimer--;
 			if (this.cutsceneTimer <= 0) {
 				let packet = {
@@ -133,8 +138,10 @@ class Game {
 				this.gameState = GameState.RUNNING;
 				this.resetPositions();
 			}
+
+			return;
 		}
-		if (this.gameState === GameState.RUNNING) {
+		else if (this.gameState === GameState.RUNNING) {
 			this.tickCounter++;
 		} else {
 			return;
@@ -146,15 +153,16 @@ class Game {
 		while (this.inputPackets.length > 0) {
 			let temp = this.inputPackets.shift();
 			if (temp.player === 0) {
-				//if (redFrame !== -1) console.log("Input dropped");
 				redFrame = temp.frame;
 				this.redInput = temp.input;
+
 			} else if (temp.player === 1) {
 				blueFrame = temp.frame;
 				this.blueInput = temp.input;
 			}
 		}
 
+		// ball-paddle collision
 		this.paddles.forEach(paddle => {
 			// The below statement is to convert an array of objects {x,y} to array of numbers  
 			let hitbox = paddle.getHitbox();
@@ -172,7 +180,6 @@ class Game {
 				this.ball.color = paddle.color;
 			}
 		})
-
 
 		// Collision between ball and walls
 		this.walls.forEach(wall => {
@@ -201,11 +208,11 @@ class Game {
 					blueScore:this.blueScore,
 					scorer:scorer,
 					tickCounter:this.tickCounter
-				}
-
+				}	
+				this.cutsceneTimer = 180;
 				this.sendPacket(packet,this.redId); 
 				this.sendPacket(packet,this.blueId);
-				this.cutsceneTimer = 180;
+				
 
 				if (this.redScore === 5 || this.blueScore === 5) {
 					this.delete = true;
@@ -213,30 +220,19 @@ class Game {
 			}
 		})
 		
-		
-
 		this.ball.update();
-		
-
 		this.paddles[0].update(this.redInput);
 		this.paddles[1].update(this.blueInput);
-		// if (this.tickCounter % 120 === 1) {
-		// 	console.log(this.ball);
-		// }
+		//if (this.tickCounter < 100) console.log("Frame ",this.tickCounter,"Red left ",this.redInput.left, "Red pos",this.paddles[0].position);
 		if (redFrame !== -1) {
-			//console.log("Paddle Positions sent, " ,[this.paddles[0].position,this.paddles[1].position]);
-			//console.log('sending to red');
-			
-
 			let packet = {
 				type:PacketType.POSITION,
-				frame:redFrame,
+				tickCounter:redFrame,
 				ball: {
 					x:this.ball.x, y:this.ball.y, dx:this.ball.dx, dy:this.ball.dy,color:this.ball.color
 				},
 				paddlePos: [this.paddles[0].position,this.paddles[1].position],
 				paddlePrevPos : [this.paddles[0].previousPos, this.paddles[1].previousPos],
-
 			}
 			this.sendPacket(packet,this.redId);
 		}
@@ -244,7 +240,7 @@ class Game {
 		if (blueFrame !== -1) {
 			let packet = {
 				type:PacketType.POSITION,
-				frame:blueFrame,
+				tickCounter:blueFrame,
 				ball: {
 					x:this.ball.x, y:this.ball.y, dx:this.ball.dx, dy:this.ball.dy,color:this.ball.color
 				},

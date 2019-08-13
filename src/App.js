@@ -12,17 +12,20 @@ import { randomBetween } from './utils/math';
 import Settings from './components/Settings';
 import { Particle } from './gameObjects/Particle';
 import {PlayerCard} from './gameObjects/PlayerCard'
-import {updateRate, ballInitSpeed} from './utils/constants';
+import {updateRate, ballInitSpeed, paddleSpeed, updateTime} from './utils/constants';
 import { QueueBox } from './components/QueueBox';
 import * as api from './api';
 import { isNumber } from 'util';
 
-
-
 const backgroundStyling = { 
 	backgroundColor : "	#fff"
 }
+var start;
 
+
+
+var timer = Date.now();
+var totalError = 0;
 const PacketType = {
 	POSITION:0,
 	STATE:1
@@ -37,16 +40,13 @@ const GameState = {
 	POST_MATCH:5,
 }
 
-
 const Teams = {
 	RED:0,
 	BLUE:1,
 }
-
-var animationFrameId;
 var goalText;
 var goalTextStyle;
-var tickTock = false;
+var animationFrameId;
 // The main component that contains the canvas, and other buttons if needed
 class App extends Component {
 
@@ -87,7 +87,8 @@ class App extends Component {
 		this.gameId = -1;
 		this.ourPlayer = -1;
 		this.prevInput = {left:false,right:false};
-		
+		this.frameHistory = new Array(1000);
+	
 	}
 
 	componentDidMount() {
@@ -97,16 +98,15 @@ class App extends Component {
 		this.setState({context:context});		
 		this.reset1v1();
 		animationFrameId = requestAnimationFrame(this.draw); 
-		setInterval(this.update, 1000/updateRate);
+		setTimeout(this.update, updateTime);
 		api.subscribe(this.matchFound.bind(this),this.stateUpdate,this.posUpdate,this.gameOver.bind(this));
 
 	}
 
-
-
 	reset1v1() {
 		//this.setState({redScore:0,blueScore:0,gameState:GameState.RUNNING});
 		this.particles = []; 
+		this.frameHistory = [];
 		this.tickCounter = 0;
 		
 		this.walls = [
@@ -131,7 +131,6 @@ class App extends Component {
 		this.resetPositions();
 	}
 
-
 	stateUpdate(packet) {
 		switch(packet.state) {
 			case GameState.PRE_MATCH:
@@ -142,6 +141,7 @@ class App extends Component {
 			case GameState.RUNNING:
 				this.cutsceneCounter = 0;
 				this.setState({gameState:GameState.RUNNING});
+				timer = Date.now();
 				break;
 			
 			case GameState.GOAL_SCORED:
@@ -150,6 +150,7 @@ class App extends Component {
 				goalText = (packet.scorer === 0? this.state.redHandle:this.state.blueHandle)+ " has scored";
 				goalTextStyle = (packet.scorer === 0? "red":"blue");
 				this.tickCounter = packet.tickCounter;
+				this.resetPositions();
 
 				break;
 
@@ -159,9 +160,11 @@ class App extends Component {
 	}
 
 	posUpdate(packet) {
-
+		//if (this.tickCounter < 100) console.log("Received paddle",packet.paddlePos[this.ourPlayer]," frame ", packet.tickCounter);
+		
+		//return;
 		if(this.state.gameState !== GameState.RUNNING) return;
-		let tickDiff = this.tickCounter - packet.frame;
+		let tickDiff = this.tickCounter - packet.tickCounter;
 
 		let tempBall = new Ball({...packet.ball});
 		//console.log(tempBall);
@@ -169,13 +172,48 @@ class App extends Component {
 		this.ball.dx = tempBall.dx; this.ball.dy = tempBall.dy;
 		this.ball.color = tempBall.color;
 
-		
+		if (this.tickCounter % 120 === 1) {
+			console.log(packet.paddlePos, packet.paddlePrevPos,tickDiff);
+		}
+
 
 		for (let i = 0; i < 2; i++) {
-			this.paddles[i].updatePosition(packet.paddlePos[i]);
-		}	
-		return;
+			if(i !== this.ourPlayer) {
+				this.paddles[i].updatePosition(packet.paddlePos[i] + (packet.paddlePos[i]-packet.paddlePrevPos[i])*tickDiff);
+			} else {
 
+				//console.log("Tick ", packet.tickCounter, "Diff ", this.frameHistory[packet.tickCounter%1000].paddle-packet.paddlePos[i] )
+				
+				
+				if (this.frameHistory[packet.tickCounter%1000] && 
+					Math.abs(this.frameHistory[packet.tickCounter%1000].paddle - packet.paddlePos[i]) > 0.01
+					) {
+					
+					console.log("Diff", this.frameHistory[packet.tickCounter%1000].paddle - packet.paddlePos[i]);
+					let tempPos = packet.paddlePos[i];
+					for (let j = packet.tickCounter + 1; j <= this.tickCounter; j++) {
+						try {
+							if (this.frameHistory[(j-1)%1000].input.left) tempPos -= paddleSpeed; 
+							if (this.frameHistory[(j-1)%1000].input.right) tempPos += paddleSpeed; 
+							if (tempPos < this.paddles[i].minPosition) tempPos = this.paddles[i].minPosition;
+							if (tempPos > this.paddles[i].maxPosition) tempPos = this.paddles[i].maxPosition;
+
+							this.frameHistory[j%1000].paddle = tempPos;
+						} catch(e) {
+							console.log("error");
+							console.log(this.frameHistory[j%1000], j, this.tickCounter);
+						}
+						
+					}
+				
+					this.paddles[i].updatePosition(tempPos);
+				}
+			}
+		}
+
+		
+	
+		return;
 		// Predict position of ball after tickDiff frames
 		for (let i = 0; i < tickDiff; i++) {
 
@@ -212,11 +250,12 @@ class App extends Component {
 		}
 
 		this.ball.x = tempBall.x; this.ball.y = tempBall.y;
-		this.ball.dx = tempBall.delete; this.ball.dy = tempBall.dy;
+		this.ball.dx = tempBall.dx; this.ball.dy = tempBall.dy;
 		this.ball.color = tempBall.color;
 	}
 
 	resetPositions() {
+	
 		this.particles = [];
 		// let randomAngle = randomBetween(-Math.PI/4,Math.PI/4);
 		// let initialBallVelocity = rotateVector({x:ballInitSpeed,y:0},randomAngle);
@@ -228,7 +267,7 @@ class App extends Component {
 		// }
 		this.ball = new Ball({x: 250, y: 250,dx:0,dy:0});
 		this.paddles.forEach(paddle => {
-			paddle.position = 50;
+			paddle.updatePosition(50);
 		})
 	}
 
@@ -244,19 +283,20 @@ class App extends Component {
 			this.particles.push(new Particle(args));
 	}
 
-
-
+	update() {
 	
 
-
-	update() {
-
+		if (this.tickCounter === 1 && this.state.gameState === GameState.RUNNING) start = Date.now();
+		if (this.tickCounter === 100) console.log("Time ", Date.now() - start);
+		
 		if (this.state.gameState === GameState.NOT_QUEUEING || this.state.gameState === GameState.QUEUEING) {
+			setTimeout(this.update,updateTime);
 			return;
 		}
 
 		if (this.state.gameState === GameState.PRE_MATCH || this.state.gameState === GameState.GOAL_SCORED) {
 			this.cutsceneCounter--;
+
 			if (this.cutsceneCounter === 0) {
 
 				if (this.state.gameState === GameState.GOAL_SCORED && (this.state.redScore === 5 || this.state.blueScore === 5)) {
@@ -268,6 +308,8 @@ class App extends Component {
 					this.cutsceneCounter = 180;
 				} else {
 					this.setState({gameState:GameState.RUNNING});
+					this.totalError = 0;
+					timer = Date.now();
 				}
 			}
 
@@ -285,7 +327,6 @@ class App extends Component {
 			this.tickCounter++;
 		}
 
-
 		// Creating new particles
 		if(this.tickCounter % 2 === 0) {
 			while (this.particles[0] && this.particles[0].delete) {
@@ -295,8 +336,6 @@ class App extends Component {
 			this.createParticle({x:this.ball.x, y:this.ball.y, color:this.ball.color})
 		}
 
-
-		
 		this.paddles.forEach(paddle => {
 			// The below statement is to convert an array of objects {x,y} to array of numbers  
 			let hitbox = paddle.getHitbox();
@@ -327,21 +366,47 @@ class App extends Component {
 			}
 		})
 
-	
-	
 		this.ball.update(this.state);
 
 		this.updatePaddles();
 
-		// Dont detect collision with goal. That is server's job
+		// Save positions of paddle to history
+		if (this.state.gameState === GameState.RUNNING) {
+			this.frameHistory[this.tickCounter%1000] = {
+				tickCounter:this.tickCounter,
+				input:this.state.input.pressedKeys,
+				paddle:this.paddles[this.ourPlayer].position,
+				ball:{
+					x:this.ball.x, y:this.ball.y,
+					dx:this.ball.dx, dy:this.ball.dy
+				}
+			}	
 
+			//if (this.tickCounter < 100) console.log("Storing left = ",this.state.input.pressedKeys.left, "paddle", this.paddles[this.ourPlayer].position, "frame ",this.tickCounter);
+			
+		}
 		this.sendInput(this.state.input.pressedKeys);
+
+		if (this.state.gameState === GameState.RUNNING) {
+			let elapsed = Date.now() - timer;
+			let error = elapsed - updateTime;
+			totalError += error;
+			
+			let nextDelay = updateTime - totalError;
+			if (nextDelay < 0) nextDelay = 0;
+			//console.log("Elapsed",elapsed,"Total error", totalError, "Next delay",nextDelay);
+			timer = Date.now();
+			setTimeout(this.update, nextDelay);
+		}
+		else {
+			setTimeout(this.update, updateTime);
+		}
 		
+	
 	}
 
 	draw() {
-	
-	
+
 		const ctx = this.state.context;
 		if (this.state.gameState === GameState.GOAL_SCORED) {
 			
@@ -401,14 +466,10 @@ class App extends Component {
 	}
 
 	sendInput(keys) {
-
-		if (keys.left === this.prevInput.left && keys.right === this.prevInput.right) {
-			//return;
-		} 
-		
-		this.prevInput.left = keys.left;
-		this.prevInput.right = keys.right;
-		api.sendInput({keys,tick:this.tickCounter,ourPlayer:this.ourPlayer,gameId:this.gameId});
+		if (this.state.gameState === GameState.RUNNING) {
+			api.sendInput({keys,tick:this.tickCounter,ourPlayer:this.ourPlayer,gameId:this.gameId});
+			//if (this.tickCounter < 100) console.log("Sending left = ",keys.left,"frame",this.tickCounter);
+		}
 	}
 
 	componentWillUnmount() {
@@ -448,6 +509,7 @@ class App extends Component {
 			this.resetPositions();
 		}
 	}
+
 	render() {
 		return (
 			<div style = {backgroundStyling}>
@@ -470,7 +532,6 @@ class App extends Component {
 		)
 	}
 
-	
 }
 
 

@@ -111,11 +111,6 @@ let constants =  require('../utils/constants');
 		if (this.position > this.maxPosition) this.position = this.maxPosition;
 		if (this.position < this.minPosition) this.position = this.minPosition;
 
-		// Get x and y position of paddle center
-		//this.position = Math.round(this.position);
-
-		// Holds the previous coordinates of the paddle in the previous frame
-		// Used to see if the paddle is moving
 		this.previousCenterX = this.paddleCenterX;
 		this.previousCenterY = this.paddleCenterY;
 

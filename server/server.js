@@ -13,6 +13,9 @@ var games = {};
 
 var nextGameId = 0;
 
+var timer = Date.now();
+var totalError = 0;
+
 io.on('connection', (client) => {
 	console.log(client.id+" has connected");
 
@@ -51,9 +54,11 @@ io.on('connection', (client) => {
 	});
 
 	client.on('input', (data) => {
+
+		setTimeout( () => {
 		if (games.hasOwnProperty(data.gameId)) {
-			games[data.gameId].newInput(data);
-		}
+			 games[data.gameId].newInput(data); // SIMULATES LATENCY REMOVE THIS LATER
+		}},40);
 		
 	})
 })
@@ -78,20 +83,33 @@ setInterval(() => {
 function sendPacket(packet,id) {
 	io.to(`${id}`).emit('gameUpdate',packet);
 }
-setInterval(() => {
 
+
+
+function updateLoop() {
+	
+	
 	for (let key in games) {
 		if (games.hasOwnProperty(key)) {
 			games[key].update();
-			if (games[key].delete) {
+			if (games[key] && games[key].delete) {
 				delete games[key];
 			}
 		}
 	}
+	let elapsed = Date.now() - timer;
+	let error = elapsed - constants.updateTime;
+	totalError += error;
+	
+	let nextDelay = constants.updateTime - totalError;
+	if (nextDelay < 0) nextDelay = 0;
+	//console.log(nextDelay);
+	timer = Date.now();
+	setTimeout(updateLoop,nextDelay);
+	
+}
 
-},constants.updateTime)
-
-
+updateLoop();
 
 app.listen(staticPort);
 

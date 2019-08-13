@@ -21,6 +21,7 @@ export default class Paddle {
 
 		this.position = 50; // Percentage value showing how far the paddle is from its first endpoint to the other
 		// Ex. 0 means it is at (x1,y1) , 100 means at (x2,y2), 50 means it is in between
+
 		this.paddleCenterX = (this.x1+this.x2)/2;
 		this.paddleCenterY = (this.y1+this.y2)/2;
 		this.previousCenterX = this.paddleCenterX;
@@ -43,6 +44,11 @@ export default class Paddle {
 	}
 
 	updatePosition(pos) {
+		if (this.color === "red") console.log("Updating red paddle to ", pos)
+
+		if (pos < this.minPosition) pos = this.minPosition;
+		if(pos > this.maxPosition) pos = this.maxPosition;
+		
 		this.previousCenterX = this.paddleCenterX;
 		this.previousCenterY = this.paddleCenterY;
 		this.position = pos;
@@ -110,7 +116,6 @@ export default class Paddle {
 		}
 
 		var delta = paddleSpeed;
-		
 		if (input.right) {
 			this.position+=delta;
 		}
