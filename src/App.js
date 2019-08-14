@@ -68,7 +68,6 @@ class App extends Component {
 
 		}
 
-	
 		this.reset1v1 = this.reset1v1.bind(this);
 		this.resetPositions = this.resetPositions.bind(this);
 		this.updatePaddles = this.updatePaddles.bind(this);
@@ -392,7 +391,13 @@ class App extends Component {
 			let error = elapsed - updateTime;
 			totalError += error;
 			
+			if (totalError > updateTime) {
+				//console.log("Skipping frame");
+				this.tickCounter++;
+				totalError -= updateTime;
+			}
 			let nextDelay = updateTime - totalError;
+			
 			if (nextDelay < 0) nextDelay = 0;
 			//if (nextDelay === 0) console.log("Skipped frame"); 
 			//console.log("Elapsed",elapsed,"Total error", totalError, "Next delay",nextDelay);
