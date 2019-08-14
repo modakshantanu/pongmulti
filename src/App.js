@@ -16,6 +16,7 @@ import {updateRate, ballInitSpeed, paddleSpeed, updateTime} from './utils/consta
 import { QueueBox } from './components/QueueBox';
 import * as api from './api';
 import { isNumber } from 'util';
+import { Status } from './components/Status';
 
 const backgroundStyling = { 
 	backgroundColor : "	#fff"
@@ -64,7 +65,11 @@ class App extends Component {
 			settings: {
 				trail:false,
 			},
-			handle:""
+			handle:"",
+			serverStatus:{
+				players:0,
+				games:0
+			}
 
 		}
 
@@ -80,7 +85,7 @@ class App extends Component {
 		this.changeHandle = this.changeHandle.bind(this);
 		this.stateUpdate = this.stateUpdate.bind(this);
 		this.posUpdate = this.posUpdate.bind(this);
-		this.winningTeam = "";
+		this.postGameText = "";
 		this.tickCounter = 0;
 		this.cutsceneCounter = 0;
 		this.gameId = -1;
@@ -98,7 +103,7 @@ class App extends Component {
 		this.reset1v1();
 		animationFrameId = requestAnimationFrame(this.draw); 
 		setTimeout(this.update, updateTime);
-		api.subscribe(this.matchFound.bind(this),this.stateUpdate,this.posUpdate,this.gameOver.bind(this));
+		api.subscribe(this.matchFound.bind(this),this.stateUpdate,this.posUpdate,this.gameOver.bind(this),this.serverStatus.bind(this));
 
 	}
 
@@ -121,8 +126,8 @@ class App extends Component {
 			new Paddle({x1:490,y1:400,x2:490,y2:100,color:"blue"}),
 		]
 		this.playerCards = [
-			new PlayerCard({playerName:this.state.redHandle, color:"red", x:25, y:50,left:"v", right:"b"}),
-			new PlayerCard({playerName:this.state.blueHandle,color:"blue", x:475,y:50,left:'-',right:"="})
+			new PlayerCard({playerName:this.state.redHandle, color:"red", x:50, y:50,left:"A", right:"D"}),
+			new PlayerCard({playerName:this.state.blueHandle,color:"blue", x:450,y:50,left:'A',right:"D"})
 		]
 		
 		
@@ -158,18 +163,17 @@ class App extends Component {
 		}
 	}
 
+	serverStatus(data) {
+		this.setState({serverStatus:{...data}});
+	}
 	posUpdate(packet) {
-		//if (this.tickCounter < 100) console.log("Received paddle",packet.paddlePos[this.ourPlayer]," frame ", packet.tickCounter);
 		
 		//return;
 		if(this.state.gameState !== GameState.RUNNING) return;
 		let tickDiff = this.tickCounter - packet.tickCounter;
 
-		let tempBall = new Ball({...packet.ball});
-		//console.log(tempBall);
-		this.ball.x = tempBall.x; this.ball.y = tempBall.y;
-		this.ball.dx = tempBall.dx; this.ball.dy = tempBall.dy;
-		this.ball.color = tempBall.color;
+	
+		
 
 	
 
@@ -178,15 +182,9 @@ class App extends Component {
 			if(i !== this.ourPlayer) {
 				this.paddles[i].updatePosition(packet.paddlePos[i] + (packet.paddlePos[i]-packet.paddlePrevPos[i])*tickDiff);
 			} else {
-
-				//console.log("Tick ", packet.tickCounter, "Diff ", this.frameHistory[packet.tickCounter%1000].paddle-packet.paddlePos[i] )
-				
-				
 				if (this.frameHistory[packet.tickCounter%1000] && 
 					Math.abs(this.frameHistory[packet.tickCounter%1000].paddle - packet.paddlePos[i]) > 0.01
 					) {
-					
-					//console.log("Diff", this.frameHistory[packet.tickCounter%1000].paddle - packet.paddlePos[i]);
 					let tempPos = packet.paddlePos[i];
 					for (let j = packet.tickCounter + 1; j <= this.tickCounter; j++) {
 						try {
@@ -202,66 +200,79 @@ class App extends Component {
 						}
 						
 					}
-				
 					this.paddles[i].updatePosition(tempPos);
 				}
 			}
 		}
 
-		
 	
-		return;
-		// Predict position of ball after tickDiff frames
-		for (let i = 0; i < tickDiff; i++) {
+	
+		if (packet.ball.x !== this.frameHistory[packet.tickCounter%1000].ball.x || packet.ball.y !== this.frameHistory[packet.tickCounter%1000].ball.y) {
+			
+			let tempBall = new Ball({...packet.ball});
 
-			this.paddles.forEach(paddle => {
-				// The below statement is to convert an array of objects {x,y} to array of numbers  
-				let hitbox = paddle.getHitbox();
-				let hitboxArr = [];
-				hitbox.forEach(e => {
-					hitboxArr.push(e.x);
-					hitboxArr.push(e.y);
+			for (let i = packet.tickCounter + 1; i <= this.tickCounter; i++) {
+				this.paddles.forEach(paddle => {
+					// The below statement is to convert an array of objects {x,y} to array of numbers  
+					let hitbox = paddle.getHitbox();
+					let hitboxArr = [];
+					hitbox.forEach(e => {
+						hitboxArr.push(e.x);
+						hitboxArr.push(e.y);
+					})
+		
+					// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
+					if (intersects.circlePolygon(tempBall.x, tempBall.y,tempBall.radius,hitboxArr)) {
+						let newVelocity = paddle.getReflection(tempBall);
+						tempBall.dx = newVelocity.x;
+						tempBall.dy = newVelocity.y;
+						tempBall.x += tempBall.dx; tempBall.y += tempBall.dy;
+						this.createParticle((({x,y}) => ({x,y}))(tempBall))
+						tempBall.color = paddle.color;
+					}
+					
 				})
-	
-				// Now hitboxArr contains the points in correct format [x1,y1,x2,y2...]
-				if (intersects.circlePolygon(tempBall.x, tempBall.y,tempBall.radius,hitboxArr)) {
-					let newVelocity = paddle.getReflection(tempBall,this.state.settings.curveball);
-					tempBall.dx = newVelocity.x;
-					tempBall.dy = newVelocity.y;
-					tempBall.x += tempBall.dx; tempBall.y += tempBall.dy;
-					tempBall.color = paddle.color;
-				}
+		
+				// Collision between ball and walls
+				this.walls.forEach(wall => {
+					if (intersects.circleLine(tempBall.x, tempBall.y, tempBall.radius, wall.x1, wall.y1, wall.x2, wall.y2)) {
+						let newVelocity = wall.getReflection(tempBall);
+						tempBall.dx = newVelocity.x;
+						tempBall.dy = newVelocity.y;
+					}
+				})
 				
-			})
-	
-			// Collision between ball and walls
-			this.walls.forEach(wall => {
-				if (intersects.circleLine(tempBall.x, tempBall.y, tempBall.radius, wall.x1, wall.y1, wall.x2, wall.y2)) {
-					let newVelocity = wall.getReflection(tempBall);
-					tempBall.dx = newVelocity.x;
-					tempBall.dy = newVelocity.y;
+				tempBall.update();
+
+				try {
+					this.frameHistory[i%1000].ball.x = tempBall.x;
+					this.frameHistory[i%1000].ball.y = tempBall.y;
+					this.frameHistory[i%1000].ball.dx = tempBall.dx;
+					this.frameHistory[i%1000].ball.dy = tempBall.dy;
+
+				} catch (e) {
+					//console.log("Ball not found error", i);
 				}
-			})
-	
-			tempBall.update();
+			}
+			this.ball.x = tempBall.x; this.ball.y = tempBall.y;
+			this.ball.dx = tempBall.dx; this.ball.dy = tempBall.dy;
+			this.ball.color = tempBall.color;
+		
+
 		}
 
-		this.ball.x = tempBall.x; this.ball.y = tempBall.y;
-		this.ball.dx = tempBall.dx; this.ball.dy = tempBall.dy;
-		this.ball.color = tempBall.color;
+
+		
+		
+		
+
+		
+
 	}
 
 	resetPositions() {
 	
 		this.particles = [];
-		// let randomAngle = randomBetween(-Math.PI/4,Math.PI/4);
-		// let initialBallVelocity = rotateVector({x:ballInitSpeed,y:0},randomAngle);
-
-		// // Make the ball go either right or left with 50:50 chance
-		// if (Math.random() < 0.5) { 
-		// 	initialBallVelocity.x *= -1;
-		// 	initialBallVelocity.y *= -1;
-		// }
 		this.timer = new Date();
 		totalError = 0;
 		this.ball = new Ball({x: 250, y: 250,dx:0,dy:0});
@@ -283,11 +294,6 @@ class App extends Component {
 	}
 
 	update() {
-	
-
-		//if (this.tickCounter === 1 && this.state.gameState === GameState.RUNNING) start = Date.now();
-		//if (this.tickCounter === 100) console.log("Time ", Date.now() - start);
-		
 		if (this.state.gameState === GameState.NOT_QUEUEING || this.state.gameState === GameState.QUEUEING) {
 			setTimeout(this.update,updateTime);
 			return;
@@ -300,8 +306,7 @@ class App extends Component {
 
 				if (this.state.gameState === GameState.GOAL_SCORED && (this.state.redScore === 5 || this.state.blueScore === 5)) {
 					
-					this.winningTeam = (this.state.redScore > this.state.blueScore ? "Red ":"Blue");
-
+					this.postGameText = (this.state.redScore > this.state.blueScore ? this.state.redHandle:this.state.blueHandle) + " Wins!";
 					this.resetPositions();
 					this.setState({gameState:GameState.POST_MATCH});
 					this.cutsceneCounter = 180;
@@ -381,7 +386,6 @@ class App extends Component {
 				}
 			}	
 
-			//if (this.tickCounter < 100) console.log("Storing left = ",this.state.input.pressedKeys.left, "paddle", this.paddles[this.ourPlayer].position, "frame ",this.tickCounter);
 			
 		}
 		this.sendInput(this.state.input.pressedKeys);
@@ -391,26 +395,18 @@ class App extends Component {
 			let error = elapsed - updateTime;
 			totalError += error;
 			
-			if (totalError > updateTime) {
-				//console.log("Skipping frame");
+			while (totalError > updateTime) {
 				this.tickCounter++;
 				totalError -= updateTime;
 			}
 			let nextDelay = updateTime - totalError;
-			
-			if (nextDelay < 0) nextDelay = 0;
-			//if (nextDelay === 0) console.log("Skipped frame"); 
-			//console.log("Elapsed",elapsed,"Total error", totalError, "Next delay",nextDelay);
-			//console.log(elapsed|0);
-
+		
 			timer = Date.now();
 			setTimeout(this.update, nextDelay);
 		}
 		else {
 			setTimeout(this.update, updateTime);
 		}
-		
-	
 	}
 
 	draw() {
@@ -424,50 +420,33 @@ class App extends Component {
 			animationFrameId = requestAnimationFrame(this.draw);
 			return;
 		}
-
-		
-
-
 		ctx.save();
 		ctx.fillStyle = "#FFF";
 		ctx.translate(0.5,0.5);
 		ctx.fillRect(0,0,500,500); // Erase the previous contents with this
-
-
-
+		
 		if (this.state.gameState === GameState.PRE_MATCH) {
 			
 			ctx.font = "30px Courier New";
 			ctx.fillStyle = "#000";
+			ctx.fillText(this.state.redHandle+" vs "+this.state.blueHandle,150,150)
 			ctx.fillText("First to 5",150,220);
 			ctx.fillText("Good Luck!",150,290);
-
-
-
 
 		}
 		if (this.state.gameState === GameState.POST_MATCH) {
 			ctx.font = "30px Courier New";
 			ctx.fillStyle = "#000";
-			var postGameText = this.winningTeam + " Team Wins!";
-			ctx.fillText(postGameText,120,220);
+			ctx.fillText(this.postGameText,120,220);
 		}
-
 
 		this.walls.forEach(wall => wall.draw(this.state));
 		this.goals.forEach(goal => 	goal.draw(this.state));
 		this.playerCards.forEach(card => card.draw(this.state));
 		this.particles.forEach(p => p.draw(this.state));
 
-		
-	
 		this.paddles.forEach(p => p.draw(this.state));
-		
-		
-		
-		//if (isNaN(this.ball.x)) console.log(this.ball.x);
 		this.ball.draw(this.state);
-
 
 		ctx.restore();
 		animationFrameId = requestAnimationFrame(this.draw);
@@ -502,8 +481,11 @@ class App extends Component {
 		this.setState({redHandle:data.redHandle,blueHandle:data.blueHandle,gameState:GameState.RUNNING} , this.reset1v1)
 	}
 
-	gameOver(data) {
-		this.setState({gameState:GameState.NOT_QUEUEING});
+	gameOver() {
+		this.postGameText = "Opponent Disconnected";
+		this.resetPositions();
+		this.cutsceneCounter = 180;
+		this.setState({gameState:GameState.POST_MATCH});
 	}
 
 	changeGameState(newState) {
@@ -524,14 +506,16 @@ class App extends Component {
 
 			<div >
 				<h1>Pong++ Multiplayer</h1>
+			
+				<canvas ref = "canvas" width = "501" height = "501"/>
+				
+				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
 				<center>
 					<QueueBox handle = {this.state.handle} gameState = {this.state.gameState} handleChangeHandler = {this.changeHandle} 
 					gameStateChangeHandler = {this.changeGameState}/>
-
+					<Status players = {this.state.serverStatus.players} games = {this.state.serverStatus.games}/>
+					<div>Single Player link <a href = "https://modakshantanu.github.io/pong/">here</a></div>
 				</center>
-				<canvas ref = "canvas" width = "501" height = "501"/>
-				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
-				
 				<Settings settings = {this.state.settings} changeHandler = {this.changeSettings}/>
 
 			

@@ -11,6 +11,8 @@ var path = require("path")
 var queue = [];
 var games = {};
 
+var connected = 0;
+
 var nextGameId = 0;
 
 var timer = Date.now();
@@ -18,8 +20,10 @@ var totalError = 0;
 
 io.on('connection', (client) => {
 	console.log(client.id+" has connected");
+	connected++;
 
 	client.on('disconnect' , () => {
+		connected--;
 		console.log(client.id+ " has disconnected");
 
 		for (let key in games) {
@@ -55,10 +59,10 @@ io.on('connection', (client) => {
 
 	client.on('input', (data) => {
 
-		setTimeout( () => {
-		if (games.hasOwnProperty(data.gameId)) {
+		//setTimeout( () => {
+		if (games.hasOwnProperty(data.gameId)) //{
 			 games[data.gameId].newInput(data); // SIMULATES LATENCY REMOVE THIS LATER
-		}},200);
+		//}},100);
 		
 	})
 })
@@ -70,8 +74,6 @@ setInterval(() => {
 		let bluePlayer = queue.shift();
 		console.log("New game: "+ redPlayer.handle + " vs "+bluePlayer.handle);
 		
-
-
 		io.to(`${redPlayer.id}`).emit('match',{redHandle:redPlayer.handle, blueHandle:bluePlayer.handle,gameId:nextGameId,ourPlayer:0});
 		io.to(`${bluePlayer.id}`).emit('match',{redHandle:redPlayer.handle, blueHandle:bluePlayer.handle,gameId:nextGameId,ourPlayer:1});
 
@@ -80,11 +82,18 @@ setInterval(() => {
 },500);
 
 
+setInterval(() => {
+	let data = {
+		games: Object.keys(games).length,
+		players: connected
+	}
+	io.emit('serverStatus', data)
+},1000);
+
+
 function sendPacket(packet,id) {
 	io.to(`${id}`).emit('gameUpdate',packet);
 }
-
-
 
 function updateLoop() {
 	

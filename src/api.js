@@ -17,12 +17,11 @@ const GameState = {
 }
 
 
-export function subscribe(matchCb,stateUpdate,posUpdate,overCb) {
+export function subscribe(matchCb,stateUpdate,posUpdate,overCb,serverStatus) {
 
 
 	socket.on('match',(data) => {
 		matchCb(data)
-		console.log("match started",data);
 	})
 
 	socket.on('gameUpdate', (data) => {
@@ -34,8 +33,11 @@ export function subscribe(matchCb,stateUpdate,posUpdate,overCb) {
 		}
 	})
 
-	socket.on('gameOver', (data) => {
-		overCb(data);
+	socket.on('gameOver', () => {
+		overCb();
+	})
+	socket.on("serverStatus", (data) => {
+		serverStatus(data);
 	})
 
 	
