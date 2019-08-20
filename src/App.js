@@ -18,11 +18,23 @@ import * as api from './api';
 import { isNumber } from 'util';
 import { Status } from './components/Status';
 
+import {isMobile } from 'react-device-detect';
+
 const backgroundStyling = { 
 	backgroundColor : "	#fff"
 }
 var start;
 
+
+const mobileButtonStyle = {
+	width:100,
+	height:100,
+	fontSize:50,
+	position:"absolute",
+	
+	
+
+}
 
 
 var timer = Date.now();
@@ -69,10 +81,14 @@ class App extends Component {
 			serverStatus:{
 				players:0,
 				games:0
-			}
+			},
+			isMobile:false,
+			width:0, height : 0,
+			isPortrait:false,
 
 		}
 
+		this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
 		this.reset1v1 = this.reset1v1.bind(this);
 		this.resetPositions = this.resetPositions.bind(this);
 		this.updatePaddles = this.updatePaddles.bind(this);
@@ -92,10 +108,22 @@ class App extends Component {
 		this.ourPlayer = -1;
 		this.prevInput = {left:false,right:false};
 		this.frameHistory = new Array(1000);
+		this.mobileButtons = {left:false,right:false};
+
+
+	}
+
+	  
+	updateWindowDimensions() {
+		this.setState({ width: window.innerWidth, height: window.innerHeight,
+		isPortrait: window.innerWidth < window.innerHeight});
+
 	
 	}
 
 	componentDidMount() {
+		this.updateWindowDimensions();
+ 		window.addEventListener('resize', this.updateWindowDimensions);
 		this.state.input.bindKeys();
 		
 		const context = this.refs.canvas.getContext('2d'); // This is to get context
@@ -104,6 +132,8 @@ class App extends Component {
 		animationFrameId = requestAnimationFrame(this.draw); 
 		setTimeout(this.update, updateTime);
 		api.subscribe(this.matchFound.bind(this),this.stateUpdate,this.posUpdate,this.gameOver.bind(this),this.serverStatus.bind(this));
+
+		
 
 	}
 
@@ -283,7 +313,12 @@ class App extends Component {
 
 	updatePaddles() {
 		if (this.ourPlayer === -1) return;
-		let keys = this.state.input.pressedKeys;
+		let keys;
+		if (isMobile) {
+			keys = this.mobileButtons;
+		} else {
+			keys = this.state.input.pressedKeys;
+		}
 		this.paddles[this.ourPlayer].update(this.state,keys);
 		
 	}
@@ -378,7 +413,7 @@ class App extends Component {
 		if (this.state.gameState === GameState.RUNNING) {
 			this.frameHistory[this.tickCounter%1000] = {
 				tickCounter:this.tickCounter,
-				input:this.state.input.pressedKeys,
+				input:(isMobile?this.mobileButtons:this.state.input.pressedKeys),
 				paddle:this.paddles[this.ourPlayer].position,
 				ball:{
 					x:this.ball.x, y:this.ball.y,
@@ -388,7 +423,7 @@ class App extends Component {
 
 			
 		}
-		this.sendInput(this.state.input.pressedKeys);
+		this.sendInput((isMobile?this.mobileButtons:this.state.input.pressedKeys));
 
 		if (this.state.gameState === GameState.RUNNING) {
 			let elapsed = Date.now() - timer;
@@ -460,6 +495,7 @@ class App extends Component {
 	}
 
 	componentWillUnmount() {
+		window.removeEventListener('resize', this.updateWindowDimensions);
 		this.state.input.unbindKeys();
 	}
 
@@ -501,13 +537,31 @@ class App extends Component {
 	}
 
 	render() {
+		
+		let lb =<button style = {{...mobileButtonStyle,left:-100,bottom:200}}
+			onMouseDown = {()=>{this.mobileButtons.left = true;}}
+			onMouseUp ={()=>{this.mobileButtons.left = false;}}>{"<"}</button>;
+
+		let rb =	<button style = {{...mobileButtonStyle,right:-100,bottom:200}}
+			onMouseDown = {()=>{this.mobileButtons.right = true;}}
+			onMouseUp ={()=>{this.mobileButtons.right = false;}}>{">"}</button>
+
 		return (
 			<div style = {backgroundStyling}>
 
 			<div >
 				<h1>Pong++ Multiplayer</h1>
-			
-				<canvas ref = "canvas" width = "501" height = "501"/>
+				{isMobile && this.state.isPortrait? <center style = {{fontSize:20, color:"red"}}>Landscape view on mobile is recommended</center>:""}
+				
+				
+				
+				<div style = {{width:501, margin:"auto",position:"relative"}}>
+					<canvas ref = "canvas" width = "501" height = "501"/>
+					{isMobile? lb:""}
+					{isMobile? rb:""}
+					
+				</div>
+				
 				
 				<Scoreboard redScore = {this.state.redScore} blueScore = {this.state.blueScore}/>
 				<center>
@@ -515,6 +569,9 @@ class App extends Component {
 					gameStateChangeHandler = {this.changeGameState}/>
 					<Status players = {this.state.serverStatus.players} games = {this.state.serverStatus.games}/>
 					<div>Single Player link <a href = "https://modakshantanu.github.io/pong/">here</a></div>
+
+					
+
 				</center>
 				<Settings settings = {this.state.settings} changeHandler = {this.changeSettings}/>
 
