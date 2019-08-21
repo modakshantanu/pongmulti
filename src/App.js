@@ -537,7 +537,7 @@ class App extends Component {
 	}
 
 	render() {
-		
+		//console.log(isMobile)
 		let lb =<button style = {{...mobileButtonStyle,left:-100,bottom:200}}
 			onMouseDown = {()=>{this.mobileButtons.left = true;}}
 			onMouseUp ={()=>{this.mobileButtons.left = false;}}>{"<"}</button>;
@@ -548,7 +548,7 @@ class App extends Component {
 
 		return (
 			<div style = {backgroundStyling}>
-
+			
 			<div >
 				<h1>Pong++ Multiplayer</h1>
 				{isMobile && this.state.isPortrait? <center style = {{fontSize:20, color:"red"}}>Landscape view on mobile is recommended</center>:""}
