@@ -489,6 +489,7 @@ class App extends Component {
 
 	sendInput(keys) {
 		if (this.state.gameState === GameState.RUNNING) {
+			//console.log(this.mobileButtons,keys);
 			api.sendInput({keys,tick:this.tickCounter,ourPlayer:this.ourPlayer,gameId:this.gameId});
 			//if (this.tickCounter < 100) console.log("Sending left = ",keys.left,"frame",this.tickCounter);
 		}
@@ -537,14 +538,14 @@ class App extends Component {
 	}
 
 	render() {
-		//console.log(isMobile)
+	
 		let lb =<button style = {{...mobileButtonStyle,left:-100,bottom:200}}
-			onMouseDown = {()=>{this.mobileButtons.left = true;}}
-			onMouseUp ={()=>{this.mobileButtons.left = false;}}>{"<"}</button>;
+			onTouchStart = {()=>{this.mobileButtons.left = true;}}
+			onTouchEnd ={()=>{this.mobileButtons.left = false;}}>{"<"}</button>;
 
 		let rb =	<button style = {{...mobileButtonStyle,right:-100,bottom:200}}
-			onMouseDown = {()=>{this.mobileButtons.right = true;}}
-			onMouseUp ={()=>{this.mobileButtons.right = false;}}>{">"}</button>
+			onTouchStart = {()=>{this.mobileButtons.right = true; }}
+			onTouchEnd ={()=>{this.mobileButtons.right = false; }}>{">"}</button>
 
 		return (
 			<div style = {backgroundStyling}>
