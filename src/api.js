@@ -1,6 +1,7 @@
 import openSocket from 'socket.io-client';
-const socket = openSocket('http://139.162.22.70:8000');
-//const socket = openSocket('http://localhost:8000');
+// Replace with server IP 
+const socket = openSocket('http://172.104.176.106:8000');
+// const socket = openSocket('http://localhost:8000');
 
 const PacketType = {
 	POSITION:0,
